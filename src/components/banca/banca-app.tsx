@@ -1,0 +1,150 @@
+'use client'
+
+import { useState } from 'react'
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ThemeProvider } from 'next-themes'
+import { Toaster } from '@/components/ui/sonner'
+import { Loader2, Wrench, LogOut } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { api } from '@/lib/api-client'
+import type { Settings, User } from '@/lib/types'
+import LoginScreen from './login-screen'
+import AppShell from './app-shell'
+import OfflineProvider from './offline-provider'
+
+export type ViewKey =
+  | 'inicio'
+  | 'vender'
+  | 'produtos'
+  | 'stock'
+  | 'fechos'
+  | 'relatorios'
+  | 'funcionarios'
+  | 'definicoes'
+
+function Splash() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
+        <Loader2 className="h-7 w-7 animate-spin" />
+      </div>
+      <p className="text-sm text-muted-foreground">A carregar a banca...</p>
+    </div>
+  )
+}
+
+/** Ecrã cheio de manutenção para quem não é IT */
+function MaintenanceOverlay({ message, onLogout }: { message?: string | null; onLogout: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background p-6">
+      <div className="w-full max-w-sm space-y-4 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+          <Wrench className="h-8 w-8" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight">Sistema em manutenção</h1>
+        <p className="text-sm text-muted-foreground">
+          {message?.trim() ||
+            'Estamos a fazer melhorias. Volte a tentar dentro de alguns minutos.'}
+        </p>
+        <Button variant="outline" onClick={onLogout} className="w-fit">
+          <LogOut className="h-4 w-4" />
+          Sair
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function BancaInner() {
+  const qc = useQueryClient()
+  const [view, setView] = useState<ViewKey>('inicio')
+
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: async (): Promise<User | null> => {
+      try {
+        const r = await api<{ user: User }>('/api/auth/me')
+        return r.user
+      } catch {
+        return null
+      }
+    },
+    retry: false,
+    staleTime: Infinity,
+  })
+
+  // Estado de manutenção (poll para o patrão ver quando o técnico ativa)
+  const settingsQuery = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api<{ settings: Settings }>('/api/settings'),
+    staleTime: Infinity,
+    enabled: !!meQuery.data,
+    refetchInterval: 30_000,
+  })
+
+  if (meQuery.isLoading) return <Splash />
+
+  const user = meQuery.data ?? null
+
+  if (!user) {
+    return (
+      <LoginScreen
+        onLogin={(u) => {
+          qc.setQueryData(['me'], u)
+          setView('inicio')
+        }}
+      />
+    )
+  }
+
+  const maintenanceOn =
+    settingsQuery.data?.settings.maintenanceMode && user.role !== 'IT'
+
+  if (maintenanceOn) {
+    return (
+      <MaintenanceOverlay
+        message={settingsQuery.data?.settings.maintenanceMessage}
+        onLogout={async () => {
+          await api('/api/auth/logout', { method: 'POST' }).catch(() => {})
+          qc.setQueryData(['me'], null)
+          qc.clear()
+        }}
+      />
+    )
+  }
+
+  return (
+    <OfflineProvider>
+      <AppShell
+        user={user}
+        view={view}
+        setView={setView}
+        onLogout={async () => {
+          await api('/api/auth/logout', { method: 'POST' }).catch(() => {})
+          qc.setQueryData(['me'], null)
+          qc.clear()
+        }}
+      />
+    </OfflineProvider>
+  )
+}
+
+export default function BancaApp() {
+  const [qc] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { refetchOnWindowFocus: false, staleTime: 10_000, retry: 1 },
+        },
+      }),
+  )
+
+  return (
+    <QueryClientProvider client={qc}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <BancaInner />
+        <Toaster richColors position="top-center" closeButton />
+      </ThemeProvider>
+    </QueryClientProvider>
+  )
+}

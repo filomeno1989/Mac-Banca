@@ -1,0 +1,13 @@
+{
+  "appId": "mz.macbanca.app",
+  "appName": "Mac Banca",
+  "webDir": "www",
+  "server": {
+    "url": "https://mac-banca.vercel.app",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#ffffff"
+  }
+}

@@ -1,0 +1,88 @@
+name: Build APK (Mac Banca)
+
+on:
+  workflow_dispatch:
+    inputs:
+      vercel_url:
+        description: 'URL da PWA (ex.: https://mac-banca.vercel.app)'
+        required: false
+        default: 'https://mac-banca.vercel.app'
+      app_version:
+        description: 'Versão do APK'
+        required: false
+        default: '1.0.0'
+      create_release:
+        description: 'Criar Release com o APK? (true/false)'
+        required: false
+        default: 'true'
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar dependências do wrapper
+        working-directory: apk
+        run: npm install --no-audit --no-fund
+
+      - name: Injetar URL e versão
+        working-directory: apk
+        run: node scripts/inject-url.js "${{ github.event.inputs.vercel_url }}" "${{ github.event.inputs.app_version }}"
+
+      - name: Gerar projeto Android
+        working-directory: apk
+        run: npx cap add android
+
+      - name: Instalar ícones
+        run: bash apk/scripts/install-icons.sh
+
+      - name: Assinatura e versão
+        run: node apk/scripts/patch-signing.js
+
+      - name: Build APK (release assinado)
+        working-directory: apk/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Preparar artefacto
+        run: |
+          cp apk/android/app/build/outputs/apk/release/app-release.apk "Mac-Banca-${{ github.event.inputs.app_version }}.apk"
+          ls -la Mac-Banca-*.apk
+
+      - name: Guardar artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mac-Banca-APK
+          path: Mac-Banca-*.apk
+          if-no-files-found: error
+
+      - name: Criar/Atualizar Release
+        if: ${{ github.event.inputs.create_release == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ github.event.inputs.app_version }}"
+          gh release create "$TAG" "Mac-Banca-${{ github.event.inputs.app_version }}.apk" \
+            --title "Mac Banca v${{ github.event.inputs.app_version }}" \
+            --notes "APK assinado do sistema **Mac Banca**.
+
+          Instalação: descarrega o ficheiro .apk no telemóvel, abre-o e permite a instalação de fontes desconhecidas." \
+            --latest || \
+          gh release upload "$TAG" "Mac-Banca-${{ github.event.inputs.app_version }}.apk" --clobber

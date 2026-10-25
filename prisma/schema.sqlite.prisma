@@ -1,0 +1,120 @@
+// Schema SQLite — usado em desenvolvimento local (sandbox/preview)
+// Não editar diretamente: este ficheiro é a fonte de verdade do modo local.
+// O ficheiro prisma/schema.prisma é gerado a partir deste ou do schema.postgres
+// pelo script scripts/pick-schema.js (corre automaticamente no postinstall).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int             @id @default(autoincrement())
+  name       String
+  username   String          @unique
+  pin        String
+  role       String          @default("FUNCIONARIO") // PATRAO | FUNCIONARIO
+  active     Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  sessions   Session[]
+  sales      Sale[]
+  stockMoves StockMovement[]
+  closures   Closure[]
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id         Int             @id @default(autoincrement())
+  name       String
+  category   String          @default("Geral")
+  unit       String          @default("un")
+  costPrice  Float           @default(0)
+  salePrice  Float
+  stock      Int             @default(0)
+  minStock   Int             @default(5)
+  active     Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  saleItems  SaleItem[]
+  stockMoves StockMovement[]
+}
+
+model Sale {
+  id        Int        @id @default(autoincrement())
+  clientRef String?    @unique // idempotência para vendas sincronizadas do modo offline
+  userId    Int
+  user      User       @relation(fields: [userId], references: [id])
+  total     Float
+  cost      Float      @default(0)
+  profit    Float      @default(0)
+  payment   String     @default("DINHEIRO") // DINHEIRO | MPESA | EMOLA | CARTAO | OUTRO
+  received  Float?
+  change    Float?
+  status    String     @default("CONCLUIDA") // CONCLUIDA | ANULADA
+  createdAt DateTime   @default(now())
+  items     SaleItem[]
+}
+
+model SaleItem {
+  id        Int     @id @default(autoincrement())
+  saleId    Int
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  name      String
+  price     Float
+  cost      Float   @default(0)
+  qty       Int
+  subtotal  Float
+}
+
+model StockMovement {
+  id         Int      @id @default(autoincrement())
+  clientRef  String?  @unique // idempotência para movimentos sincronizados do modo offline
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id])
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  type       String // ENTRADA | VENDA | PERDA | AJUSTE | ANULACAO | INICIAL
+  delta      Int
+  stockAfter Int      @default(0)
+  reason     String?
+  createdAt  DateTime @default(now())
+}
+
+model Closure {
+  id           Int      @id @default(autoincrement())
+  day          String   @unique // YYYY-MM-DD (fuso Africa/Johannesburg)
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  expectedCash Float
+  countedCash  Float
+  difference   Float
+  totalSales   Float    @default(0)
+  totalProfit  Float    @default(0)
+  numSales     Int      @default(0)
+  byPayment    String   @default("{}")
+  notes        String?
+  createdAt    DateTime @default(now())
+}
+
+model Setting {
+  id                 String   @id @default("main")
+  businessName       String   @default("Minha Banca")
+  currency           String   @default("MT")
+  openingCash        Float    @default(0)
+  maintenanceMode    Boolean  @default(false) // quando ativo, só o utilizador IT entra
+  maintenanceMessage String? // mensagem exibida durante a manutenção
+  updatedAt          DateTime @updatedAt
+}

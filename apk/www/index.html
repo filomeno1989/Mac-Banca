@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mac Banca</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        background: #fff;
+        color: #065f46;
+        text-align: center;
+      }
+      .box { padding: 24px; }
+      .logo {
+        width: 84px;
+        height: 84px;
+        border-radius: 20px;
+        background: linear-gradient(#10b981, #059669);
+        margin: 0 auto 16px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 42px;
+        font-weight: 800;
+      }
+      button {
+        margin-top: 18px;
+        padding: 12px 22px;
+        border: 0;
+        border-radius: 12px;
+        background: #059669;
+        color: #fff;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <div class="logo">B</div>
+      <h2>Mac Banca</h2>
+      <p id="msg">A ligar ao sistema...</p>
+      <button id="retry" style="display: none" onclick="location.reload()">
+        Tentar novamente
+      </button>
+    </div>
+    <script>
+      // Se o WebView não carregou o site remoto em 8s, mostra aviso
+      setTimeout(function () {
+        var m = document.getElementById('msg');
+        if (m && m.offsetParent !== null) {
+          m.textContent =
+            'Sem ligação à internet. Verifique os dados móveis e tente outra vez.';
+          document.getElementById('retry').style.display = 'inline-block';
+        }
+      }, 8000);
+      setTimeout(function () {
+        var m = document.getElementById('msg');
+        if (m) m.style.display = 'none';
+      }, 2500);
+    </script>
+  </body>
+</html>
