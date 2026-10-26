@@ -133,3 +133,31 @@ Stage Summary:
 - Nomes reais dos utilizadores ficam para o usuário definir via Funcionários > Editar (não inventar)
 
 
+
+---
+Task ID: 7
+Agent: Z.ai (main)
+Task: v1.2.0: backup completo, recibos (WhatsApp/impressão/PDF), relatórios PDF, dados da banca, tutorial
+
+Work Log:
+- Schema Setting: ownerPhone, nuit, address, receiptFooter (sqlite + postgres); db push local e Supabase (5432 direct)
+- /api/settings: GET devolve dados da banca com sessão; PATCH guarda os 4 campos novos (privileged)
+- /api/backup NOVO: GET exportação JSON completa (settings, users, products, sales+items, stockMovements, closures; sessões fora) e POST restauração em transação com normalização; sequências PG repostas com setval; sessões válidas preservadas (bug apanhado no teste E2E: apagar users em cascata matava as sessões, toda a gente era desligada após restaurar)
+- /api/stats/reports: agregação byCategory (items → product.category) + CSV com cabeçalho da banca (Banca/NUIT/Contacto/Endereço/Período)
+- lib/receipt.ts NOVO: buildReceiptText (WhatsApp), shareReceipt (nativo → wa.me direto com contacto do patrão ou escolha), printReceipt (iframe 80mm), downloadReceiptPdf (jsPDF formato [80, altura dinâmica]), waNumber (258 automático)
+- sale-details-dialog: 4 botões (Partilhar, WhatsApp do patrão, Imprimir, Guardar PDF); venda-view: recibo de sucesso com WhatsApp/Imprimir/PDF
+- relatorios-view: Exportar PDF (A4, jspdf+autotable com cabeçalho da banca, resumo, por dia, pagamentos, categorias, top produtos, rodapé) + cartão Lucro por categoria; PDFs com import dinâmico (bundle inicial leve)
+- produtos-view: Exportar CSV produtos/stock (custos, preços, stock, estado) com dados da banca
+- definicoes-view: campos contacto/NUIT/endereço/rodapé + BackupCard (descarregar/restaurar com AlertDialog) + cartão Ajuda (onNavigate)
+- tutorial-view.tsx NOVO: novidades por versão (v1.2.0, v1.1.2) + 10 secções em accordion; ViewKey 'ajuda' (todas as contas), nav sidebar + bottom (Mais para funcionário) com bolinha vermelha "novo" por versão (localStorage mb-ajuda-visto)
+- jspdf 4.2.1 + jspdf-autotable 5.0.9
+- ESLint: ignores apk/scripts/mini-services; set-state-in-effect corrigido (UpdatesCard com setTimeout, banca-app com exceção comentada); eslint --fix em avisos
+- E2E local (agent-browser): login, definições guardadas (verificado na BD), backup roundtrip, produto, venda #1, recibo com 3 botões, detalhe com 4 botões, PDFs gerados e validados (relatório 1 pág com banca+NUIT+categoria; recibo exatamente 80,0 mm de largura), tutorial, funcionário vê Ajuda via Mais, CSV com cabeçalho da banca
+- Produção (022b650 + e56c84f): backup GET com dados reais (10 produtos), CSV OK, workflow APK SUCCESS (versionName 1.2.0, versionCode 10200, assinado v2, 3,03 MB), Release v1.2.0 publicada
+- Fix: /api/app-release deixou de usar ISR next:{revalidate:300} (ficava preso ao valor antigo) → rota force-dynamic com cache em memória de 5 min; agora devolve 1.2.0
+
+Stage Summary:
+- Produção: https://mac-banca.vercel.app (commit e56c84f)
+- APK: https://github.com/filomeno1989/Mac-Banca/releases/download/v1.2.0/Mac-Banca-1.2.0.apk (3,03 MB, versionCode 10200)
+- Banner de atualização ativo: app instalada v1.1.2 recebe aviso da v1.2.0 e instala por cima sem perder dados
+- Para o usuário: preencher nas Definições o contacto, NUIT e endereço (produção ainda sem esses dados) e fazer o primeiro backup
