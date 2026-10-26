@@ -90,3 +90,25 @@ Stage Summary:
 - Produção: https://mac-banca.vercel.app (commit 45efd47)
 - APK: https://github.com/filomeno1989/Mac-Banca/releases/download/v1.1.0/Mac-Banca-1.1.0.apk
 - Tokens/credenciais mantidos em .deploy-credentials.json (não apagar até confirmação)
+
+---
+Task ID: 5
+Agent: Z.ai (main)
+Task: Funcionário sem acesso a atualizações + logotipo antigo no APK + teste da atualização interna (v1.1.1)
+
+Work Log:
+- Diagnóstico logo antigo: install-icons.sh só substituía ic_launcher.png/round; no Android 8+ o launcher usa o ícone ADAPTATIVO (mipmap-anydpi-v26 -> ic_launcher_foreground), que ficava com o padrão do Capacitor
+- gen_logo.py reescrito: gera camadas adaptativas (foreground/background 108dp: 108-432px), XMLs anydpi-v26 (@mipmap/ic_launcher_background), values/ic_launcher_background.xml e 11 splashes (drawable*/splash.png) com logo + wordmark
+- install-icons.sh instala agora TODAS as camadas; patch-signing.js grava também versionCode (major*10000+minor*100+patch -> 10101) para aceitar instalar por cima
+- update-banner.tsx novo: banner global de atualização montado no AppShell, visível para TODAS as contas (patrão, funcionário e IT), dispensável por versão (localStorage), botão Descarregar via openExternal
+- Credenciais recriadas em .deploy-credentials.json (ficheiro gitignored não sobreviveu à renovação da sessão) + .gitignore com /apk/android/ e version.txt
+- Deploy web (commit 37fa1dc) READY; SW cache v3; workflow APK v1.1.1 SUCCESS (run 40369042688)
+- Validação do APK v1.1.1: assinatura v2 OK, versionName 1.1.1 no manifest, versionCode 10101 nos logs, camadas adaptativas confirmadas por análise de pixels (foreground 91% transparente + 9% branco; background 100% esmeralda; v1.1.0 tinha foreground do Capacitor)
+- /api/app-release agora devolve 1.1.1 (após revalidate de 300s); banner aparece na app instalada
+
+Stage Summary:
+- Produção: https://mac-banca.vercel.app (commit 37fa1dc)
+- APK: https://github.com/filomeno1989/Mac-Banca/releases/download/v1.1.1/Mac-Banca-1.1.1.apk (3,18 MB, assinado)
+- Atualização interna testável de ponta a ponta: v1.1.0 instalada vê o banner e instala a v1.1.1 por cima (sem desinstalar, sem perder dados)
+- Logo M.B no launcher garantido pelas camadas adaptativas; cache do launcher pode exigir reiniciar o aparelho
+
