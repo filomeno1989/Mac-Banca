@@ -68,3 +68,25 @@ Stage Summary:
 - APK: Release v1.0.0 no repo com Mac-Banca-1.0.0.apk (2,81 MB, assinado, download público OK)
 - Repo: github.com/filomeno1989/Mac-Banca (workflow APK verde, re-executável via Actions)
 - Tokens mantidos no disco (.deploy-credentials.json) conforme pedido — apagar só após confirmação
+
+---
+Task ID: 4
+Agent: Z.ai (main)
+Task: Ajustes v1.1.0 (9 pedidos do usuário) + varredura de melhorias
+
+Work Log:
+- Travessões "—" eliminados de todo o projeto (UI, comentários, README, sw.js) e substituídos por ":", ",", "·" ou "-" conforme o contexto
+- Botão voltar Android: hash-history na SPA (banca-app.tsx sincroniza #/vista com pushState/popstate, com guarda de permissões) + patch-mainactivity.js (WebView.goBack + 2 toques para sair com Toast)
+- Atualizações in-app: src/lib/version.ts (APP_VERSION, getInstalledVersion via @capacitor/app, compareVersions, openExternal) + /api/app-release (fetch server-side do GitHub com revalidate 300, evita CORS/rate-limit) + card "Aplicação e atualizações" nas Definições + aviso discreto no login
+- Assinatura "F. M. J. A." itálico/transparente + "v1.1.0" no rodapé do login
+- Logo M.B profissional (scripts/gen_logo.py): gradiente esmeralda + toldo + monograma; regenerados icon-192/512, maskable, apple-touch-icon, favicon.ico e mipmaps Android (launcher + round)
+- Subtítulo "Gestão de vendas, stock e lucros" removido do ecrã principal; logo aplicado também na sidebar e header
+- Categorias: src/lib/categories.ts (6 padrões de banca + normalizeCategory + mergeCategories); datalist do produto mostra padrões + aprendidas; normalização ao guardar
+- Varredura (#9): papel IT corrigido em produtos/stock/dashboard (isPrivileged) e na API stats/dashboard (IT agora vê lucros); rate-limit do GitHub resolvido com API própria
+- APK v1.1.0: workflow verde, Release criada, download validado (PK, 2.99 MB); logs confirmam assinatura + MainActivity
+- QA no browser: login (logo/sem subtítulo/versão/assinatura), Definições "Está atualizado", Produtos datalist com 6 categorias padrão, botão voltar do browser navega dentro da app
+
+Stage Summary:
+- Produção: https://mac-banca.vercel.app (commit 45efd47)
+- APK: https://github.com/filomeno1989/Mac-Banca/releases/download/v1.1.0/Mac-Banca-1.1.0.apk
+- Tokens/credenciais mantidos em .deploy-credentials.json (não apagar até confirmação)
