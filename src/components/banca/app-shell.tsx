@@ -29,6 +29,7 @@ import { ROLE_LABELS, greeting } from '@/lib/format'
 import { isPrivileged } from '@/lib/auth-client'
 import type { ViewKey } from './banca-app'
 import OfflineBanner from './offline-banner'
+import UpdateBanner from './update-banner'
 import DashboardView from './dashboard-view'
 import VendaView from './venda-view'
 import ProdutosView from './produtos-view'
@@ -198,6 +199,7 @@ export default function AppShell({
       <main className="md:pl-64 pb-24 md:pb-10">
         <div className="mx-auto max-w-6xl p-4 md:p-6">
           <OfflineBanner />
+          <UpdateBanner />
           <AnimatePresence mode="wait">
             <motion.div
               key={view}

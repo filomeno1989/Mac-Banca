@@ -5,7 +5,7 @@
  *  - Network-first com cache de apoio para navegações e estáticos
  *  - Se ficar offline, serve a última página conhecida
  */
-const CACHE = 'banca-cache-v2';
+const CACHE = 'banca-cache-v3';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

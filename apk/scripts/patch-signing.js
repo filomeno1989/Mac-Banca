@@ -51,10 +51,21 @@ if (gradle.includes('signingConfig signingConfigs.release')) {
   process.exit(1);
 }
 
-// 3) versionName
+// 3) versionName + versionCode (o code tem de crescer a cada release
+//    para o Android aceitar instalar por cima da atual)
 const version = fs.readFileSync(path.join(__dirname, 'version.txt'), 'utf8').trim();
 gradle = gradle.replace(/versionName\s+"[^"]*"/, `versionName "${version}"`);
-console.log('✓ versionName =', version);
+console.log('OK versionName =', version);
+
+const parts = version.split('.').map((n) => parseInt(n, 10) || 0);
+const code = (parts[0] || 0) * 10000 + (parts[1] || 0) * 100 + (parts[2] || 0);
+if (/versionCode\s+\d+/.test(gradle)) {
+  gradle = gradle.replace(/versionCode\s+\d+/, `versionCode ${code}`);
+  console.log('OK versionCode =', code);
+} else {
+  console.error('ERRO: versionCode nao encontrado no build.gradle');
+  process.exit(1);
+}
 
 fs.writeFileSync(gradlePath, gradle);
 console.log('build.gradle atualizado.');
