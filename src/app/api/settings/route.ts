@@ -18,11 +18,17 @@ export async function GET() {
   const user = await getSessionUser()
 
   const setting = await getOrCreateSetting()
+  const logged = Boolean(user)
   return NextResponse.json({
     settings: {
       businessName: setting.businessName,
       currency: setting.currency,
       openingCash: user && isPrivileged(user.role) ? setting.openingCash : undefined,
+      // dados da banca usados em recibos e exportações (só com sessão iniciada)
+      ownerPhone: logged ? setting.ownerPhone : undefined,
+      nuit: logged ? setting.nuit : undefined,
+      address: logged ? setting.address : undefined,
+      receiptFooter: logged ? setting.receiptFooter : undefined,
       maintenanceMode: setting.maintenanceMode,
       maintenanceMessage: setting.maintenanceMessage,
     },
@@ -39,6 +45,10 @@ export async function PATCH(req: NextRequest) {
     businessName?: string
     currency?: string
     openingCash?: number
+    ownerPhone?: string
+    nuit?: string
+    address?: string
+    receiptFooter?: string
     maintenanceMode?: boolean
     maintenanceMessage?: string
   }
@@ -58,6 +68,22 @@ export async function PATCH(req: NextRequest) {
     const v = round2(Number(body.openingCash))
     if (Number.isNaN(v) || v < 0) return badRequest('Fundo de caixa inválido.')
     data.openingCash = v
+  }
+  if (body.ownerPhone !== undefined) {
+    const v = String(body.ownerPhone).trim().slice(0, 24)
+    data.ownerPhone = v || null
+  }
+  if (body.nuit !== undefined) {
+    const v = String(body.nuit).trim().slice(0, 20)
+    data.nuit = v || null
+  }
+  if (body.address !== undefined) {
+    const v = String(body.address).trim().slice(0, 160)
+    data.address = v || null
+  }
+  if (body.receiptFooter !== undefined) {
+    const v = String(body.receiptFooter).trim().slice(0, 200)
+    data.receiptFooter = v || null
   }
   if (body.maintenanceMode !== undefined || body.maintenanceMessage !== undefined) {
     if (user.role !== 'IT') {
@@ -79,6 +105,10 @@ export async function PATCH(req: NextRequest) {
       businessName: updated.businessName,
       currency: updated.currency,
       openingCash: updated.openingCash,
+      ownerPhone: updated.ownerPhone,
+      nuit: updated.nuit,
+      address: updated.address,
+      receiptFooter: updated.receiptFooter,
       maintenanceMode: updated.maintenanceMode,
       maintenanceMessage: updated.maintenanceMessage,
     },

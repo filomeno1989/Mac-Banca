@@ -22,6 +22,7 @@ export type ViewKey =
   | 'relatorios'
   | 'funcionarios'
   | 'definicoes'
+  | 'ajuda'
 
 const VIEW_KEYS: ViewKey[] = [
   'inicio',
@@ -32,6 +33,7 @@ const VIEW_KEYS: ViewKey[] = [
   'relatorios',
   'funcionarios',
   'definicoes',
+  'ajuda',
 ]
 const PATRAO_ONLY_VIEWS: ViewKey[] = ['fechos', 'relatorios', 'funcionarios', 'definicoes']
 
@@ -103,8 +105,8 @@ function BancaInner() {
   useEffect(() => {
     if (!user) return
     const v = viewFromHash(user)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza a vista com o hash (sistema externo) no arranque da sessão
     if (v) setView(v)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
   useEffect(() => {

@@ -101,7 +101,7 @@ export default function OfflineProvider({ children }: { children: React.ReactNod
       unsub()
       clearInterval(interval)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [])
 
   return <Ctx.Provider value={{ online, pending, syncing, lastSync, syncNow, refreshPending }}>{children}</Ctx.Provider>

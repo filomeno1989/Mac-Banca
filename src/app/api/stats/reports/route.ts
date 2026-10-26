@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getSessionUser, unauthorized, forbidden, round2, isPrivileged } from '@/lib/auth'
 import { TZ, dayString, dayStart, dayEnd, addDays, today } from '@/lib/tz'
-import type { DayPoint, TopProduct } from '@/lib/types'
+import type { CategoryStat, DayPoint, TopProduct } from '@/lib/types'
 
 /** Relatório de vendas por período (patrão e técnico). format=csv devolve ficheiro Excel */
 export async function GET(req: NextRequest) {
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
   const sales = await db.sale.findMany({
     where: { createdAt: { gte: dayStart(from), lte: dayEnd(to) }, status: 'CONCLUIDA' },
-    include: { items: true, user: { select: { name: true } } },
+    include: { items: { include: { product: { select: { category: true } } } }, user: { select: { name: true } } },
     orderBy: { createdAt: 'asc' },
   })
 
@@ -51,7 +51,15 @@ export async function GET(req: NextRequest) {
       DINHEIRO: 'Dinheiro', MPESA: 'M-Pesa', EMOLA: 'e-Mola', CARTAO: 'Cartão', OUTRO: 'Outro',
     }
     const hourFmt = new Intl.DateTimeFormat('pt-PT', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
+    // Identificação da banca no topo do ficheiro
+    const st = await db.setting.findUnique({ where: { id: 'main' } })
     const rows: string[] = [
+      `Banca;${q(st?.businessName ?? 'Mac Banca')}`,
+      st?.nuit ? `NUIT;${q(st.nuit)}` : '',
+      st?.ownerPhone ? `Contacto;${q(st.ownerPhone)}` : '',
+      st?.address ? `Endereço;${q(st.address)}` : '',
+      `Período;${q(`${from} a ${to}`)}`,
+      '',
       ['Data', 'Hora', 'Venda', 'Produto', 'Qtd', 'Preço unitário', 'Subtotal', 'Pagamento', 'Atendido por']
         .map(q).join(';'),
     ]
@@ -87,6 +95,7 @@ export async function GET(req: NextRequest) {
   const byDayMap = new Map<string, DayPoint>()
   const byPaymentMap = new Map<string, { total: number; num: number }>()
   const topMap = new Map<string, TopProduct>()
+  const catMap = new Map<string, CategoryStat>()
 
   // preparar todos os dias do intervalo
   let cursor = from
@@ -130,6 +139,13 @@ export async function GET(req: NextRequest) {
       top.revenue = round2(top.revenue + it.subtotal)
       top.profit = round2(top.profit + (it.subtotal - it.cost * it.qty))
       topMap.set(it.name, top)
+
+      const cat = it.product?.category?.trim() || 'Outros'
+      const cs = catMap.get(cat) ?? { category: cat, qty: 0, revenue: 0, profit: 0 }
+      cs.qty += it.qty
+      cs.revenue = round2(cs.revenue + it.subtotal)
+      cs.profit = round2(cs.profit + (it.subtotal - it.cost * it.qty))
+      catMap.set(cat, cs)
     }
   }
 
@@ -152,6 +168,7 @@ export async function GET(req: NextRequest) {
     byPayment: [...byPaymentMap.entries()]
       .map(([payment, v]) => ({ payment, ...v }))
       .sort((a, b) => b.total - a.total),
+    byCategory: [...catMap.values()].sort((a, b) => b.profit - a.profit).slice(0, 10),
     topProducts: [...topMap.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 8),
     numAnnulled: annulled.length,
     totalAnnulled: round2(annulled.reduce((a, s) => a + s.total, 0)),

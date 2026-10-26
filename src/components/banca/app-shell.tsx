@@ -12,6 +12,7 @@ import {
   BarChart3,
   Users,
   Settings as SettingsIcon,
+  HelpCircle,
   LogOut,
   Moon,
   Sun,
@@ -24,6 +25,7 @@ import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/api-client'
+import { APP_VERSION } from '@/lib/version'
 import type { Settings, User, Role } from '@/lib/types'
 import { ROLE_LABELS, greeting } from '@/lib/format'
 import { isPrivileged } from '@/lib/auth-client'
@@ -38,6 +40,7 @@ import FechosView from './fechos-view'
 import RelatoriosView from './relatorios-view'
 import FuncionariosView from './funcionarios-view'
 import DefinicoesView from './definicoes-view'
+import TutorialView from './tutorial-view'
 
 interface NavItem {
   key: ViewKey
@@ -55,6 +58,7 @@ const NAV: NavItem[] = [
   { key: 'relatorios', label: 'Relatórios', icon: BarChart3, patraoOnly: true },
   { key: 'funcionarios', label: 'Funcionários', icon: Users, patraoOnly: true },
   { key: 'definicoes', label: 'Definições', icon: SettingsIcon, patraoOnly: true },
+  { key: 'ajuda', label: 'Ajuda', icon: HelpCircle },
 ]
 
 function ThemeToggle() {
@@ -100,6 +104,14 @@ export default function AppShell({
   onLogout: () => void
 }) {
   const [moreOpen, setMoreOpen] = useState(false)
+  const [ajudaNovo, setAjudaNovo] = useState(() => {
+    // bolinha "novo" no menu Ajuda: acende se o tutorial desta versão ainda não foi visto
+    try {
+      return typeof window !== 'undefined' && localStorage.getItem('mb-ajuda-visto') !== APP_VERSION
+    } catch {
+      return false
+    }
+  })
   const isPatrao = isPrivileged(user.role)
 
   const settingsQuery = useQuery({
@@ -111,6 +123,15 @@ export default function AppShell({
 
   const nav = NAV.filter((n) => !n.patraoOnly || isPatrao)
   const go = (v: ViewKey) => {
+    if (v === 'ajuda') {
+      // tutorial desta versão visto: apaga a bolinha "novo" do menu
+      try {
+        localStorage.setItem('mb-ajuda-visto', APP_VERSION)
+      } catch {
+        /* sem localStorage */
+      }
+      setAjudaNovo(false)
+    }
     setView(v)
     setMoreOpen(false)
     window.scrollTo({ top: 0 })
@@ -133,9 +154,16 @@ export default function AppShell({
       case 'funcionarios':
         return <FuncionariosView />
       case 'definicoes':
-        return <DefinicoesView user={user} />
+        return <DefinicoesView user={user} onNavigate={go} />
+      case 'ajuda':
+        return <TutorialView />
     }
   }
+
+  const navDot = (key: ViewKey) =>
+    key === 'ajuda' && ajudaNovo ? (
+      <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 md:right-2.5" aria-hidden />
+    ) : null
 
   const mobileMain = nav.filter((n) => ['inicio', 'produtos'].includes(n.key))
   const mobileAfterVender = nav.filter((n) => !['inicio', 'produtos', 'vender'].includes(n.key))
@@ -156,7 +184,7 @@ export default function AppShell({
               key={item.key}
               onClick={() => go(item.key)}
               className={cn(
-                'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors min-h-[44px]',
+                'relative w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors min-h-[44px]',
                 view === item.key
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -165,6 +193,7 @@ export default function AppShell({
             >
               <item.icon className="h-4.5 w-4.5" />
               {item.label}
+              {navDot(item.key)}
             </button>
           ))}
         </nav>
@@ -225,13 +254,14 @@ export default function AppShell({
               key={item.key}
               onClick={() => go(item.key)}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 text-[11px] font-medium min-h-[44px]',
+                'relative flex flex-col items-center justify-center gap-1 text-[11px] font-medium min-h-[44px]',
                 view === item.key ? 'text-primary' : 'text-muted-foreground',
               )}
               aria-current={view === item.key ? 'page' : undefined}
             >
               <item.icon className="h-5 w-5" />
               {item.label}
+              {navDot(item.key)}
             </button>
           ))}
 
@@ -276,17 +306,20 @@ export default function AppShell({
           )}
 
           {/* Mais */}
-          {isPatrao && mobileMore.length > 0 ? (
+          {mobileMore.length > 0 ? (
             <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
               <SheetTrigger asChild>
                 <button
                   className={cn(
-                    'flex flex-col items-center justify-center gap-1 text-[11px] font-medium min-h-[44px]',
+                    'relative flex flex-col items-center justify-center gap-1 text-[11px] font-medium min-h-[44px]',
                     mobileMore.some((m) => m.key === view) ? 'text-primary' : 'text-muted-foreground',
                   )}
                 >
                   <Menu className="h-5 w-5" />
                   Mais
+                  {mobileMore.some((m) => m.key === 'ajuda') && ajudaNovo && (
+                    <span className="absolute right-4 top-2 h-2 w-2 rounded-full bg-red-500" aria-hidden />
+                  )}
                 </button>
               </SheetTrigger>
               <SheetContent side="bottom" className="rounded-t-2xl">
@@ -299,12 +332,13 @@ export default function AppShell({
                       key={item.key}
                       onClick={() => go(item.key)}
                       className={cn(
-                        'flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium',
+                        'relative flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium',
                         view === item.key && 'border-primary text-primary bg-primary/5',
                       )}
                     >
                       <item.icon className="h-6 w-6" />
                       {item.label}
+                      {navDot(item.key)}
                     </button>
                   ))}
                 </div>

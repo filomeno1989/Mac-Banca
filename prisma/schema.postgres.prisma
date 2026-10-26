@@ -119,6 +119,10 @@ model Setting {
   businessName       String   @default("Minha Banca")
   currency           String   @default("MT")
   openingCash        Float    @default(0)
+  ownerPhone         String? // contacto/WhatsApp do patrão (recibos e partilhas)
+  nuit               String? // NUIT da banca (recibos e exportações)
+  address            String? // endereço/local da banca (recibos)
+  receiptFooter      String? // mensagem no rodapé dos recibos
   maintenanceMode    Boolean  @default(false) // quando ativo, só o utilizador IT entra
   maintenanceMessage String? // mensagem exibida durante a manutenção
   updatedAt          DateTime @updatedAt

@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Ban, CheckCircle2, Share2 } from 'lucide-react'
+import { Ban, CheckCircle2, Share2, MessageCircle, Printer, FileDown } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { api } from '@/lib/api-client'
-import { openExternal } from '@/lib/version'
+import { receiptBank, shareReceipt, printReceipt, downloadReceiptPdf } from '@/lib/receipt'
 import type { Sale, Settings } from '@/lib/types'
 import { formatMoney, formatDateTime, paymentLabel } from '@/lib/format'
 
@@ -49,7 +49,7 @@ export default function SaleDetailsDialog({
     queryFn: () => api<{ settings: Settings }>('/api/settings'),
     staleTime: Infinity,
   })
-  const businessName = settingsQuery.data?.settings.businessName ?? 'Mac Banca'
+  const bank = receiptBank(settingsQuery.data?.settings, currency)
 
   const saleQuery = useQuery({
     queryKey: ['sale', saleId],
@@ -73,27 +73,16 @@ export default function SaleDetailsDialog({
 
   const sale = saleQuery.data?.sale
 
-  // Recibo em texto para partilhar (nativo ou WhatsApp)
-  const shareText = sale
-    ? [
-        businessName,
-        `Venda #${sale.id} : ${formatDateTime(sale.createdAt)}`,
-        ...(sale.items ?? []).map((it) => `${it.qty}x ${it.name} = ${formatMoney(it.subtotal, currency)}`),
-        `Total: ${formatMoney(sale.total, currency)} (${paymentLabel(sale.payment)})`,
-        `Atendeu: ${sale.user.name}`,
-      ].join('\n')
-    : ''
-
-  const share = async () => {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({ text: shareText })
-        return
-      }
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') return
-    }
-    openExternal(`https://wa.me/?text=${encodeURIComponent(shareText)}`)
+  // Ações do recibo: partilha nativa, WhatsApp, impressão 80mm e PDF
+  const share = () => {
+    if (!sale) return
+    void shareReceipt(sale, bank).then((r) => {
+      if (r === 'wa') toast.info('Abrimos o WhatsApp com o recibo. Escolha o contacto.')
+    })
+  }
+  const whatsapp = () => {
+    if (!sale) return
+    void shareReceipt(sale, bank, bank.ownerPhone || undefined)
   }
 
   return (
@@ -168,10 +157,24 @@ export default function SaleDetailsDialog({
             </div>
 
             {sale.status === 'CONCLUIDA' && (
-              <Button variant="outline" className="w-full" onClick={() => share()}>
-                <Share2 className="h-4 w-4" />
-                Partilhar recibo
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={share}>
+                  <Share2 className="h-4 w-4" />
+                  Partilhar
+                </Button>
+                <Button variant="outline" onClick={whatsapp}>
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp{bank.ownerPhone ? ' do patrão' : ''}
+                </Button>
+                <Button variant="outline" onClick={() => printReceipt(sale, bank)}>
+                  <Printer className="h-4 w-4" />
+                  Imprimir
+                </Button>
+                <Button variant="outline" onClick={() => void downloadReceiptPdf(sale, bank)}>
+                  <FileDown className="h-4 w-4" />
+                  Guardar PDF
+                </Button>
+              </div>
             )}
 
             {isPatrao && sale.status === 'CONCLUIDA' && (

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Banknote, TrendingUp, Percent, ShoppingBasket, Ticket, Ban, Download } from 'lucide-react'
+import { Banknote, TrendingUp, Percent, ShoppingBasket, Ticket, Ban, Download, FileText } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
@@ -96,6 +96,7 @@ export default function RelatoriosView() {
   const data = query.data
 
   const maxPayment = data?.byPayment[0]?.total ?? 1
+  const maxCatProfit = Math.max(1, ...(data?.byCategory ?? []).map((c) => c.profit))
 
   const exportCsv = async () => {
     try {
@@ -121,6 +122,150 @@ export default function RelatoriosView() {
     }
   }
 
+  // Relatório em PDF com os dados da banca no cabeçalho
+  const exportPdf = async () => {
+    if (!data) return
+    try {
+      const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ])
+      const s = settingsQuery.data?.settings
+      const mt = (v: number) => formatMoney(v, currency)
+
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+      const pageW = doc.internal.pageSize.getWidth()
+
+      // Cabeçalho: banca + título
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(16)
+      doc.text(s?.businessName || 'Mac Banca', 14, 18)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(110)
+      const meta = [
+        s?.nuit ? `NUIT: ${s.nuit}` : null,
+        s?.ownerPhone ? `Contacto: ${s.ownerPhone}` : null,
+        s?.address,
+      ].filter(Boolean) as string[]
+      meta.forEach((m, i) => doc.text(m, 14, 23.5 + i * 4.5))
+
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(12)
+      doc.setTextColor(20)
+      doc.text('Relatório de vendas', pageW - 14, 18, { align: 'right' })
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(110)
+      doc.text(`${data.from} a ${data.to}`, pageW - 14, 23.5, { align: 'right' })
+      doc.text(
+        `Gerado em ${new Date().toLocaleString('pt-PT', { timeZone: 'Africa/Johannesburg' })}`,
+        pageW - 14,
+        28,
+        { align: 'right' },
+      )
+      doc.setDrawColor(30)
+      doc.setLineWidth(0.4)
+      doc.line(14, 33, pageW - 14, 33)
+
+      const t = data.totals
+      autoTable(doc, {
+        startY: 38,
+        head: [['Resumo do período', 'Valor']],
+        body: [
+          ['Faturação', mt(t.totalSales)],
+          ['Lucro', mt(t.totalProfit)],
+          ['Margem', `${t.margin}%`],
+          ['Nº de vendas', String(t.numSales)],
+          ['Ticket médio', mt(t.avgTicket)],
+          ['Vendas anuladas (fora dos totais)', `${data.numAnnulled} (${mt(data.totalAnnulled)})`],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [10, 152, 108] },
+        styles: { fontSize: 9, cellPadding: 2 },
+        columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+      })
+
+      const secTitle = (title: string) => {
+        const y = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 38
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(11)
+        doc.setTextColor(20)
+        doc.text(title, 14, y + 9)
+        return y + 11
+      }
+
+      if (data.byDay.length) {
+        autoTable(doc, {
+          startY: secTitle('Vendas por dia'),
+          head: [['Dia', 'Vendas', 'Total', 'Lucro']],
+          body: data.byDay.map((d) => [d.day, String(d.num), mt(d.total), mt(d.profit)]),
+          theme: 'striped',
+          headStyles: { fillColor: [10, 152, 108] },
+          styles: { fontSize: 8.5, cellPadding: 1.6 },
+          columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
+        })
+      }
+
+      if (data.byPayment.length) {
+        autoTable(doc, {
+          startY: secTitle('Por forma de pagamento'),
+          head: [['Método', 'Nº de vendas', 'Total']],
+          body: data.byPayment.map((p) => [paymentLabel(p.payment), String(p.num), mt(p.total)]),
+          theme: 'striped',
+          headStyles: { fillColor: [10, 152, 108] },
+          styles: { fontSize: 8.5, cellPadding: 1.6 },
+          columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' } },
+        })
+      }
+
+      if (data.byCategory.length) {
+        autoTable(doc, {
+          startY: secTitle('Lucro por categoria'),
+          head: [['Categoria', 'Artigos', 'Receita', 'Lucro']],
+          body: data.byCategory.map((c) => [c.category, String(c.qty), mt(c.revenue), mt(c.profit)]),
+          theme: 'striped',
+          headStyles: { fillColor: [10, 152, 108] },
+          styles: { fontSize: 8.5, cellPadding: 1.6 },
+          columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
+        })
+      }
+
+      if (data.topProducts.length) {
+        autoTable(doc, {
+          startY: secTitle('Produtos mais vendidos'),
+          head: [['Produto', 'Qtd', 'Receita', 'Lucro']],
+          body: data.topProducts.map((p) => [p.name, String(p.qty), mt(p.revenue), mt(p.profit)]),
+          theme: 'striped',
+          headStyles: { fillColor: [10, 152, 108] },
+          styles: { fontSize: 8.5, cellPadding: 1.6 },
+          columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
+        })
+      }
+
+      const pages = doc.getNumberOfPages()
+      for (let i = 1; i <= pages; i++) {
+        doc.setPage(i)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(8)
+        doc.setTextColor(130)
+        doc.text(
+          `Mac Banca v1.2.0 : dados da banca, recibos e partilhas`,
+          14,
+          doc.internal.pageSize.getHeight() - 8,
+        )
+        doc.text(`${i}/${pages}`, pageW - 14, doc.internal.pageSize.getHeight() - 8, {
+          align: 'right',
+        })
+      }
+
+      doc.save(`relatorio-${s?.businessName?.replace(/\s+/g, '-').toLowerCase() || 'mac-banca'}-${data.from}_a_${data.to}.pdf`)
+      toast.success('Relatório PDF descarregado.')
+    } catch {
+      toast.error('Não foi possível gerar o PDF.')
+    }
+  }
+
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-start justify-between gap-2">
@@ -130,17 +275,28 @@ export default function RelatoriosView() {
             Acompanhe as vendas, lucros e os produtos mais vendidos.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          disabled={query.isLoading || !data}
-          onClick={() => exportCsv()}
-        >
-          <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">Exportar CSV</span>
-          <span className="sm:hidden">CSV</span>
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={query.isLoading || !data}
+            onClick={() => void exportPdf()}
+          >
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportar PDF</span>
+            <span className="sm:hidden">PDF</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={query.isLoading || !data}
+            onClick={() => exportCsv()}
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportar CSV</span>
+            <span className="sm:hidden">CSV</span>
+          </Button>
+        </div>
       </div>
 
       <Tabs value={range} onValueChange={(v) => setRange(v as Range)}>
@@ -309,50 +465,82 @@ export default function RelatoriosView() {
               </CardContent>
             </Card>
 
-            {/* Top produtos */}
+            {/* Lucro por categoria */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Produtos mais vendidos</CardTitle>
+                <CardTitle className="text-base">Lucro por categoria</CardTitle>
               </CardHeader>
-              <CardContent>
-                {data.topProducts.length === 0 ? (
+              <CardContent className="space-y-3">
+                {data.byCategory.length === 0 ? (
                   <p className="py-4 text-center text-sm text-muted-foreground">
                     Sem vendas neste período.
                   </p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Produto</TableHead>
-                        <TableHead className="text-right">Qtd</TableHead>
-                        <TableHead className="text-right">Receita</TableHead>
-                        <TableHead className="text-right">Lucro</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.topProducts.map((p, i) => (
-                        <TableRow key={p.name}>
-                          <TableCell className="font-medium">
-                            <span className="mr-1.5 text-xs text-muted-foreground">
-                              {i + 1}.
-                            </span>
-                            {p.name}
-                          </TableCell>
-                          <TableCell className="text-right">{p.qty}</TableCell>
-                          <TableCell className="text-right">
-                            {formatMoney(p.revenue, currency)}
-                          </TableCell>
-                          <TableCell className="text-right text-primary font-medium">
-                            {formatMoney(p.profit, currency)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  data.byCategory.map((c) => (
+                    <div key={c.category} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="truncate">{c.category}</span>
+                        <span className="font-medium text-primary shrink-0">
+                          {formatMoney(c.profit, currency)}{' '}
+                          <span className="text-xs text-muted-foreground">({c.qty} art.)</span>
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{
+                            width: `${Math.max(4, (c.profit / (maxCatProfit || 1)) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))
                 )}
               </CardContent>
             </Card>
           </div>
+
+          {/* Top produtos */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Produtos mais vendidos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {data.topProducts.length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  Sem vendas neste período.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Produto</TableHead>
+                      <TableHead className="text-right">Qtd</TableHead>
+                      <TableHead className="text-right">Receita</TableHead>
+                      <TableHead className="text-right">Lucro</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.topProducts.map((p, i) => (
+                      <TableRow key={p.name}>
+                        <TableCell className="font-medium">
+                          <span className="mr-1.5 text-xs text-muted-foreground">{i + 1}.</span>
+                          {p.name}
+                        </TableCell>
+                        <TableCell className="text-right">{p.qty}</TableCell>
+                        <TableCell className="text-right">
+                          {formatMoney(p.revenue, currency)}
+                        </TableCell>
+                        <TableCell className="text-right text-primary font-medium">
+                          {formatMoney(p.profit, currency)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </>
       )}
     </div>

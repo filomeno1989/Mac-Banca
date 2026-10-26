@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Pencil, Archive, Search, Package, RotateCcw } from 'lucide-react'
+import { Plus, Pencil, Archive, Search, Package, RotateCcw, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -186,6 +186,52 @@ export default function ProdutosView({ user }: { user: User }) {
 
   const canSubmit = form.name.trim().length > 0 && Number(form.salePrice.replace(',', '.')) > 0
 
+  // Exportar produtos e stock em CSV (abre no Excel) com dados da banca
+  const exportCsv = () => {
+    try {
+      const s = settingsQuery.data?.settings
+      const q = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`
+      const num = (n: number) => String(n).replace('.', ',')
+      const rows: string[] = [
+        `Banca;${q(s?.businessName || 'Mac Banca')}`,
+        s?.nuit ? `NUIT;${q(s.nuit)}` : '',
+        s?.ownerPhone ? `Contacto;${q(s.ownerPhone)}` : '',
+        `Exportado em;${q(new Date().toLocaleDateString('pt-PT'))}`,
+        '',
+        ['Produto', 'Categoria', 'Unidade', 'Preço custo', 'Preço venda', 'Stock', 'Stock mínimo', 'Estado']
+          .map(q)
+          .join(';'),
+      ]
+      for (const p of products) {
+        rows.push(
+          [
+            q(p.name),
+            q(p.category),
+            q(p.unit),
+            num(p.costPrice ?? 0),
+            num(p.salePrice),
+            String(p.stock),
+            String(p.minStock),
+            p.active ? 'Ativo' : 'Arquivado',
+          ].join(';'),
+        )
+      }
+      const blob = new Blob(['\ufeff' + rows.filter((r) => r !== undefined).join('\r\n')], {
+        type: 'text/csv; charset=utf-8',
+      })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `mac-banca-produtos-stock-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(a.href)
+      toast.success('Lista de produtos e stock descarregada.')
+    } catch {
+      toast.error('Não foi possível gerar o ficheiro.')
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -196,10 +242,17 @@ export default function ProdutosView({ user }: { user: User }) {
           </p>
         </div>
         {isPatrao && (
-          <Button onClick={openNew}>
-            <Plus className="h-4 w-4" />
-            Novo produto
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportCsv} disabled={products.length === 0}>
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Exportar CSV</span>
+              <span className="sm:hidden">CSV</span>
+            </Button>
+            <Button onClick={openNew}>
+              <Plus className="h-4 w-4" />
+              Novo produto
+            </Button>
+          </div>
         )}
       </div>
 

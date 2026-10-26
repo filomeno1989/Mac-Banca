@@ -74,6 +74,10 @@ export interface Settings {
   businessName: string
   currency: string
   openingCash: number
+  ownerPhone?: string | null
+  nuit?: string | null
+  address?: string | null
+  receiptFooter?: string | null
   maintenanceMode?: boolean
   maintenanceMessage?: string | null
 }
@@ -88,6 +92,13 @@ export interface DayPoint {
 
 export interface TopProduct {
   name: string
+  qty: number
+  revenue: number
+  profit: number
+}
+
+export interface CategoryStat {
+  category: string
   qty: number
   revenue: number
   profit: number
@@ -111,6 +122,7 @@ export interface ReportData {
   totals: { numSales: number; totalSales: number; totalCost: number; totalProfit: number; margin: number; avgTicket: number }
   byDay: DayPoint[]
   byPayment: { payment: string; total: number; num: number }[]
+  byCategory: CategoryStat[]
   topProducts: TopProduct[]
   numAnnulled: number
   totalAnnulled: number

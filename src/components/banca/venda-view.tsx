@@ -16,6 +16,9 @@ import {
   CheckCircle2,
   ShoppingBasket,
   CloudOff,
+  MessageCircle,
+  Printer,
+  FileDown,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,6 +37,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { api, NetworkError } from '@/lib/api-client'
 import * as offline from '@/lib/offline'
+import { receiptBank, shareReceipt, printReceipt, downloadReceiptPdf } from '@/lib/receipt'
 import type { Product, Sale, Settings, User } from '@/lib/types'
 import { formatMoney, paymentLabel, PAYMENTS } from '@/lib/format'
 import { isPrivileged } from '@/lib/auth-client'
@@ -76,6 +80,7 @@ export default function VendaView({ user }: { user: User }) {
     staleTime: Infinity,
   })
   const currency = settingsQuery.data?.settings.currency ?? 'MT'
+  const bank = receiptBank(settingsQuery.data?.settings, currency)
 
   const productsQuery = useQuery({
     queryKey: ['products', 'active'],
@@ -99,7 +104,7 @@ export default function VendaView({ user }: { user: User }) {
     const deltas = offline.localDeltas()
     return base.map((p) => ({ ...p, stock: p.stock + (deltas[p.id] ?? 0) }))
     // recomputa quando a fila offline muda (pending muda)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [productsQuery.data, productsQuery.isError, offlineCtx.pending])
   const offlineMode = productsQuery.isError && products.length > 0
   const categories = useMemo(
@@ -563,6 +568,37 @@ export default function VendaView({ user }: { user: User }) {
                     </span>
                   </div>
                 )}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-col h-auto py-2"
+                  onClick={() =>
+                    void shareReceipt(receipt, bank, bank.ownerPhone || undefined)
+                  }
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-col h-auto py-2"
+                  onClick={() => printReceipt(receipt, bank)}
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-col h-auto py-2"
+                  onClick={() => void downloadReceiptPdf(receipt, bank)}
+                >
+                  <FileDown className="h-4 w-4" />
+                  PDF
+                </Button>
               </div>
               <Button className="w-full" onClick={() => setReceipt(null)}>
                 Nova venda
