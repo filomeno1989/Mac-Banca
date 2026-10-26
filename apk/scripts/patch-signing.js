@@ -17,7 +17,7 @@ if (!gradle.includes('signingConfigs {')) {
     /buildTypes\s*\{/,
     `signingConfigs {
         release {
-            storeFile file('../../../keystore/macbanca.keystore')
+            storeFile file('../../keystore/macbanca.keystore')
             storePassword '${STORE_PASS}'
             keyAlias '${KEY_ALIAS}'
             keyPassword '${KEY_PASS}'
