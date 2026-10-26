@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "mz.macbanca.app",
+    "sha256_cert_fingerprints": [
+      "B9:11:54:AA:C1:F6:3A:49:09:4D:8A:17:5B:13:C5:5F:09:F5:0E:75:38:9E:43:41:47:D6:E5:FD:09:C2:15:81"
+    ]
+  }
+}]

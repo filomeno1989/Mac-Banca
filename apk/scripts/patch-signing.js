@@ -31,19 +31,24 @@ if (!gradle.includes('signingConfigs {')) {
   console.log('• signingConfigs já existe');
 }
 
-// 2) release → usar a assinatura de release
+// 2) release (dentro de buildTypes) → usar a assinatura de release
+//    ⚠ âncora em buildTypes para NÃO tocar no release{} dentro de signingConfigs
 if (gradle.includes('signingConfig signingConfigs.release')) {
   console.log('• release já usa signingConfigs.release');
 } else if (gradle.includes('signingConfig signingConfigs.debug')) {
   gradle = gradle.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release');
   console.log('✓ release → signingConfigs.release');
-} else {
+} else if (/buildTypes\s*\{\s*release\s*\{/.test(gradle)) {
   gradle = gradle.replace(
-    /release\s*\{/,
-    `release {
+    /buildTypes\s*\{\s*release\s*\{/,
+    `buildTypes {
+        release {
             signingConfig signingConfigs.release`,
   );
-  console.log('✓ release block com signingConfigs.release (inserido)');
+  console.log('✓ buildTypes.release com signingConfigs.release (âncora buildTypes)');
+} else {
+  console.error('✗ ERRO: não encontrei buildTypes { release { no build.gradle');
+  process.exit(1);
 }
 
 // 3) versionName
