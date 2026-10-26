@@ -192,7 +192,7 @@ export default function StockView({ user }: { user: User }) {
                   <p className="text-xs font-medium text-muted-foreground">Valor do stock</p>
                   <Boxes className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <p className="mt-1.5 text-lg md:text-xl font-bold truncate">
+                <p className="mt-1.5 text-base sm:text-lg md:text-xl font-bold tabular-nums leading-tight break-all">
                   {formatMoney(stockValue, currency)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">a preço de custo</p>
@@ -279,28 +279,30 @@ export default function StockView({ user }: { user: User }) {
           ) : (
             <div className="rounded-lg border divide-y max-h-96 overflow-y-auto">
               {filteredProducts.map((p) => (
-                <div key={p.id} className="flex items-center gap-2 px-3 py-2.5">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      mín. {p.minStock} · {p.unit}
-                    </p>
+                <div key={p.id} className="px-3 py-2.5 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        mín. {p.minStock} · {p.unit}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={p.stock <= 0 ? 'destructive' : p.stock <= p.minStock ? 'outline' : 'secondary'}
+                      className={cn(
+                        'shrink-0',
+                        p.stock > 0 && p.stock <= p.minStock && 'text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700',
+                      )}
+                    >
+                      {p.stock} {p.unit}
+                    </Badge>
                   </div>
-                  <Badge
-                    variant={p.stock <= 0 ? 'destructive' : p.stock <= p.minStock ? 'outline' : 'secondary'}
-                    className={cn(
-                      'shrink-0',
-                      p.stock > 0 && p.stock <= p.minStock && 'text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700',
-                    )}
-                  >
-                    {p.stock} {p.unit}
-                  </Badge>
                   {isPatrao && (
-                    <div className="flex gap-1">
+                    <div className="flex gap-1.5">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 px-2 text-xs"
+                        className="h-8 flex-1 px-2 text-xs"
                         onClick={() => openMove('ENTRADA', p)}
                         aria-label={`Repor stock de ${p.name}`}
                       >
@@ -310,7 +312,7 @@ export default function StockView({ user }: { user: User }) {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 px-2 text-xs"
+                        className="h-8 flex-1 px-2 text-xs"
                         onClick={() => openMove('PERDA', p)}
                         aria-label={`Registar perda de ${p.name}`}
                       >
@@ -320,7 +322,7 @@ export default function StockView({ user }: { user: User }) {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 px-2 text-xs"
+                        className="h-8 flex-1 px-2 text-xs"
                         onClick={() => openMove('AJUSTE', p)}
                         aria-label={`Ajustar stock de ${p.name}`}
                       >
