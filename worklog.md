@@ -44,3 +44,27 @@ Stage Summary:
 - Projeto 100% pronto para deploy: no Vercel o postinstall troca automaticamente para PostgreSQL
 - Falta apenas: tokens do utilizador (GitHub ghp_, Supabase sbp_, Vercel) + nome da banca + escolha seed limpo/demo
 - Depois dos tokens: push GitHub → criar Supabase (Cidade do Cabo) → db push + seed → deploy Vercel → testes → entregar URL
+
+---
+Task ID: 3
+Agent: Z.ai (main)
+Task: Deploy completo online (GitHub + Supabase + Vercel) + APK assinado em Release + correções
+
+Work Log:
+- Credenciais guardadas em .deploy-credentials.json (chmod 600, fora do git, gitignored — NÃO apagar até confirmação do usuário)
+- Verificado estado anterior: schema/seed/offline/IT já implementados; Supabase com tabelas + seed limpo (patrao, funcionario, admin IT)
+- Diagnóstico Vercel 500: env vars apontavam ao pooler errado (aws-0) — correto é aws-1-eu-central-1; validado com prisma db execute (6543 pooled + 5432 session) e gravado via API (201)
+- Commit pendente indesejado removido (examples/websocket, vercel-fix-db.py) — histórico limpo
+- Fix APK #1: patch-signing.js inseria signingConfig dentro do próprio bloco signingConfigs (âncora em buildTypes resolve)
+- Fix APK #2: caminho da keystore ../../keystore/ (estava ../../../ — apontava à raiz do repo)
+- Branding: manifest/layout/sw → "Mac Banca" (cache SW v2)
+- assetlinks.json criado com fingerprint SHA256 da keystore (B9:11:54:...:15:81)
+- README.md do repo com instruções de instalação
+- E2E produção: login 3 papéis OK, criação produto, sync offline com clientRef (venda criada), idempotência (duplicate:true sem duplicar), stock 5→3
+- Limpeza pós-teste via Management API: 0 produtos/vendas/sessões, 3 utilizadores, sequências resetadas
+
+Stage Summary:
+- Produção: https://mac-banca.vercel.app (READY, commit 981624a)
+- APK: Release v1.0.0 no repo com Mac-Banca-1.0.0.apk (2,81 MB, assinado, download público OK)
+- Repo: github.com/filomeno1989/Mac-Banca (workflow APK verde, re-executável via Actions)
+- Tokens mantidos no disco (.deploy-credentials.json) conforme pedido — apagar só após confirmação
