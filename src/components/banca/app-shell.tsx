@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Store,
   Home,
   ShoppingCart,
   Package,
@@ -147,9 +146,7 @@ export default function AppShell({
       {/* ---------- Sidebar (desktop) ---------- */}
       <aside className="hidden md:flex fixed inset-y-0 left-0 z-30 w-64 flex-col border-r bg-card">
         <div className="flex items-center gap-3 px-5 h-16 border-b">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Store className="h-5 w-5" />
-          </span>
+          <img src="/icons/icon-192.png" alt="Mac Banca" className="h-9 w-9 rounded-xl shadow-sm" />
           <span className="font-bold truncate">{businessName}</span>
         </div>
         <nav className="flex-1 overflow-y-auto p-3 space-y-1" aria-label="Navegação principal">
@@ -184,9 +181,7 @@ export default function AppShell({
 
       {/* ---------- Header (mobile) ---------- */}
       <header className="md:hidden sticky top-0 z-30 flex items-center gap-3 border-b bg-card/95 backdrop-blur h-14 px-4">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Store className="h-4.5 w-4.5" />
-        </span>
+        <img src="/icons/icon-192.png" alt="Mac Banca" className="h-8 w-8 rounded-lg" />
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm truncate leading-tight">{businessName}</p>
           <p className="text-xs text-muted-foreground leading-tight">
@@ -238,7 +233,7 @@ export default function AppShell({
             </button>
           ))}
 
-          {/* Vender — botão central destacado */}
+          {/* Vender: botão central destacado */}
           <button
             onClick={() => go('vender')}
             className="flex flex-col items-center justify-center -mt-5"
@@ -322,7 +317,7 @@ export default function AppShell({
       {/* Aviso de modo (desktop apenas, discreto) */}
       {user.role === 'FUNCIONARIO' && (
         <Badge variant="outline" className="hidden md:inline-flex fixed bottom-4 right-4">
-          Modo funcionário — sem acesso a lucros
+          Modo funcionário: sem acesso a lucros
         </Badge>
       )}
     </div>

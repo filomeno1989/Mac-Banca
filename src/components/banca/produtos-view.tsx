@@ -45,6 +45,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { api } from '@/lib/api-client'
+import { isPrivileged } from '@/lib/auth-client'
+import { mergeCategories, normalizeCategory } from '@/lib/categories'
 import type { Product, Settings, User } from '@/lib/types'
 import { formatMoney } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -86,7 +88,7 @@ function stockBadge(p: Product) {
 
 export default function ProdutosView({ user }: { user: User }) {
   const qc = useQueryClient()
-  const isPatrao = user.role === 'PATRAO'
+  const isPatrao = isPrivileged(user.role)
 
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
@@ -141,7 +143,7 @@ export default function ProdutosView({ user }: { user: User }) {
     mutationFn: () => {
       const payload = {
         name: form.name.trim(),
-        category: form.category.trim() || 'Geral',
+        category: normalizeCategory(form.category) || 'Geral',
         unit: form.unit,
         costPrice: Number(form.costPrice.replace(',', '.')) || 0,
         salePrice: Number(form.salePrice.replace(',', '.')) || 0,
@@ -389,7 +391,7 @@ export default function ProdutosView({ user }: { user: User }) {
                   list="cat-list"
                 />
                 <datalist id="cat-list">
-                  {(productsQuery.data?.categories ?? []).map((c) => (
+                  {mergeCategories(productsQuery.data?.categories ?? []).map((c) => (
                     <option key={c} value={c} />
                   ))}
                 </datalist>

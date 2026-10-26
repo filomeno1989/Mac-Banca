@@ -8,7 +8,7 @@ import {
   badRequest,
 } from '@/lib/auth'
 
-/** Lista de utilizadores ativos (para escolher no ecrã de login) — o IT fica oculto */
+/** Lista de utilizadores ativos (para escolher no ecrã de login) - o IT fica oculto */
 export async function GET() {
   const users = await db.user.findMany({
     where: { active: true, role: { not: 'IT' } },

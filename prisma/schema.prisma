@@ -1,20 +1,15 @@
-// Schema PostgreSQL — usado em PRODUÇÃO (Supabase + Vercel)
-// Não editar diretamente: este ficheiro é a fonte de verdade do modo produção.
-// O ficheiro prisma/schema.prisma é gerado a partir deste no postinstall
-// quando VERCEL=1 (deploy) ou USE_PG=1 (manual).
-//
-// - DATABASE_URL  → ligação POOLED (Supavisor, porta 6543) usada pela app na Vercel
-// - DIRECT_URL    → ligação DIRETA (porta 5432) usada pelo prisma db push / migrate
+// Schema SQLite — usado em desenvolvimento local (sandbox/preview)
+// Não editar diretamente: este ficheiro é a fonte de verdade do modo local.
+// O ficheiro prisma/schema.prisma é gerado a partir deste ou do schema.postgres
+// pelo script scripts/pick-schema.js (corre automaticamente no postinstall).
 
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model User {

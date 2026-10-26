@@ -12,7 +12,7 @@ export interface CreateSaleInput {
   received?: number
   /** idempotência: se já existir venda com este ref, devolve-a sem duplicar */
   clientRef?: string | null
-  /** data da venda no telemóvel (modo offline) — mantém os relatórios corretos */
+  /** data da venda no telemóvel (modo offline) - mantém os relatórios corretos */
   clientDate?: string | null
   /** modo offline: permite stock negativo (a venda já aconteceu na banca) */
   allowNegativeStock?: boolean

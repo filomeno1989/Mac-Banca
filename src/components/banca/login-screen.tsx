@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Store, Delete, LogIn, ShieldCheck, UserRound, Wrench } from 'lucide-react'
+import { Delete, LogIn, ShieldCheck, UserRound, Wrench, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/api-client'
+import { APP_VERSION, getInstalledVersion, fetchLatestRelease, compareVersions, openExternal } from '@/lib/version'
 import type { User } from '@/lib/types'
 import { ROLE_LABELS } from '@/lib/format'
 import type { Role } from '@/lib/types'
@@ -34,6 +35,47 @@ function initials(name: string): string {
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? '')
     .join('')
+}
+
+/** Rodapé de versão: mostra a versão instalada e avisa se há atualização do APK */
+function VersionFooter() {
+  const [installed, setInstalled] = useState<string | null>(null)
+  const [update, setUpdate] = useState<{ version: string; url: string } | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      const { version } = await getInstalledVersion()
+      if (!alive) return
+      setInstalled(version)
+      const latest = await fetchLatestRelease()
+      if (alive && latest && compareVersions(latest.version, version) > 0 && latest.downloadUrl) {
+        setUpdate({ version: latest.version, url: latest.downloadUrl })
+      }
+    })().catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      {update && (
+        <button
+          type="button"
+          onClick={() => openExternal(update.url)}
+          className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-[11px] font-medium text-primary transition-colors hover:bg-primary/10"
+        >
+          <Download className="h-3 w-3" />
+          Nova versão v{update.version} disponível. Descarregar
+        </button>
+      )}
+      <p className="text-[10px] text-muted-foreground/40 select-none">
+        v{installed ?? APP_VERSION}
+      </p>
+      <p className="text-[10px] italic text-muted-foreground/25 select-none">F. M. J. A.</p>
+    </div>
+  )
 }
 
 export default function LoginScreen({ onLogin }: { onLogin: (u: User) => void }) {
@@ -134,11 +176,12 @@ export default function LoginScreen({ onLogin }: { onLogin: (u: User) => void })
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-primary/5 via-background to-background">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
-            <Store className="h-8 w-8" />
-          </div>
+          <img
+            src="/icons/icon-192.png"
+            alt="Mac Banca"
+            className="h-20 w-20 rounded-2xl shadow-lg"
+          />
           <h1 className="text-2xl font-bold tracking-tight">{businessName}</h1>
-          <p className="text-sm text-muted-foreground">Gestão de vendas, stock e lucros</p>
         </div>
 
         {maintenance && (
@@ -290,6 +333,7 @@ export default function LoginScreen({ onLogin }: { onLogin: (u: User) => void })
           >
             Acesso técnico
           </button>
+          <VersionFooter />
         </div>
       </div>
 

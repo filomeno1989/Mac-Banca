@@ -5,7 +5,8 @@
   "description": "Wrapper Android (Capacitor) do sistema Mac Banca",
   "dependencies": {
     "@capacitor/android": "^6.2.1",
-    "@capacitor/core": "^6.2.1"
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/app": "^6.0.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.1"

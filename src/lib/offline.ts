@@ -1,5 +1,5 @@
 /**
- * Modo offline com sincronização — Mac Banca
+ * Modo offline com sincronização - Mac Banca
  *
  * Como funciona:
  *  1. Sem internet, as vendas e movimentos de stock são guardados numa fila
@@ -8,7 +8,7 @@
  *     com números coerentes.
  *  3. Quando a internet volta (evento 'online', por tempo, ou botão),
  *     a fila é enviada para /api/sales/sync e /api/stock/movements.
- *  4. O servidor é idempotente (clientRef único) — nunca duplica.
+ *  4. O servidor é idempotente (clientRef único) - nunca duplica.
  */
 
 const QUEUE_KEY = 'macbanca.offline.queue.v1'
@@ -95,7 +95,7 @@ export function cacheProducts(products: unknown) {
   try {
     window.localStorage.setItem(PRODUCTS_KEY, JSON.stringify({ at: Date.now(), products }))
   } catch {
-    /* quota — ignorar */
+    /* quota - ignorar */
   }
 }
 
@@ -168,11 +168,11 @@ export async function syncAll(): Promise<SyncResult> {
       for (const f of failed) {
         result.failed += 1
         result.errors.push(f.error ?? 'Erro ao sincronizar venda')
-        // erro permanente (produto apagado, etc.) — sai da fila para não bloquear as outras
+        // erro permanente (produto apagado, etc.) - sai da fila para não bloquear as outras
         remaining = remaining.filter((item) => !(item.kind === 'sale' && item.clientRef === f.clientRef))
       }
     } catch (e) {
-      // rede caiu a meio — manter chunk na fila
+      // rede caiu a meio - manter chunk na fila
       if (e instanceof Error && e.name === 'NetworkError') break
       const failed = chunk
       result.failed += failed.length

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Save, Store, Info, Wrench } from 'lucide-react'
+import { Save, Store, Info, Wrench, RefreshCw, Download, CheckCircle2, AlertCircle, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { api } from '@/lib/api-client'
+import { getInstalledVersion, fetchLatestRelease, compareVersions, openExternal } from '@/lib/version'
 import type { Settings, User } from '@/lib/types'
 
 export default function DefinicoesView({ user }: { user: User }) {
@@ -61,6 +62,8 @@ export default function DefinicoesView({ user }: { user: User }) {
       </div>
 
       {isIt && <MaintenanceCard settings={settingsQuery.data?.settings} />}
+
+      <UpdatesCard />
 
       {settingsQuery.isLoading || !form ? (
         <Skeleton className="h-64 rounded-xl" />
@@ -134,7 +137,7 @@ export default function DefinicoesView({ user }: { user: User }) {
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground space-y-2">
               <p>
-                <b className="text-foreground">Patrão (você):</b> vê e controla tudo — produtos com
+                <b className="text-foreground">Patrão (você):</b> vê e controla tudo: produtos com
                 preços de custo, lucros, stock, fechos de caixa, relatórios e contas de acesso.
                 Faça o fecho do dia na aba “Fechos” e confirme se o dinheiro da gaveta bate.
               </p>
@@ -150,7 +153,7 @@ export default function DefinicoesView({ user }: { user: User }) {
               </p>
               <p>
                 <b className="text-foreground">Stock:</b> quando um produto chega ao mínimo, o
-                sistema avisa no painel — altura de comprar ao grossista e registar a entrada.
+                sistema avisa no painel: altura de comprar ao grossista e registar a entrada.
               </p>
             </CardContent>
           </Card>
@@ -160,7 +163,101 @@ export default function DefinicoesView({ user }: { user: User }) {
   )
 }
 
-/** Painel de manutenção — exclusivo do técnico (IT) */
+/** Cartão de atualizações: versão instalada e nova versão do APK no GitHub */
+function UpdatesCard() {
+  const [installed, setInstalled] = useState<{ version: string; source: 'apk' | 'web' } | null>(null)
+  const [latest, setLatest] = useState<{ version: string; url: string } | null>(null)
+  const [state, setState] = useState<'checking' | 'ok' | 'update' | 'error'>('checking')
+
+  const check = useCallback(async () => {
+    setState('checking')
+    try {
+      const inst = await getInstalledVersion()
+      setInstalled(inst)
+      const rel = await fetchLatestRelease()
+      if (rel && rel.downloadUrl) {
+        setLatest({ version: rel.version, url: rel.downloadUrl })
+        setState(compareVersions(rel.version, inst.version) > 0 ? 'update' : 'ok')
+      } else {
+        setLatest(null)
+        setState('error')
+      }
+    } catch {
+      setState('error')
+    }
+  }, [])
+
+  useEffect(() => {
+    void check()
+  }, [check])
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Smartphone className="h-4 w-4" />
+          Aplicação e atualizações
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <p className="text-muted-foreground">
+          Versão instalada: <b className="text-foreground">v{installed?.version ?? '...'}</b>
+          {installed && (
+            <span className="text-xs">
+              {' '}
+              ({installed.source === 'apk' ? 'aplicação Android' : 'versão web'})
+            </span>
+          )}
+        </p>
+
+        {state === 'checking' && (
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            A procurar atualizações...
+          </p>
+        )}
+
+        {state === 'ok' && (
+          <p className="flex items-center gap-2 text-primary">
+            <CheckCircle2 className="h-4 w-4" />
+            Está atualizado (última versão: v{latest?.version}).
+          </p>
+        )}
+
+        {state === 'update' && latest && (
+          <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-500/40 dark:bg-amber-500/10">
+            <p className="flex items-center gap-2 font-medium text-amber-900 dark:text-amber-200">
+              <AlertCircle className="h-4 w-4" />
+              Nova versão v{latest.version} disponível
+            </p>
+            <Button size="sm" onClick={() => openExternal(latest.url)}>
+              <Download className="h-4 w-4" />
+              Descarregar atualização
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              O ficheiro .apk abre no navegador. Depois de descarregar, abra-o no telemóvel para
+              instalar por cima (os dados ficam intactos).
+            </p>
+          </div>
+        )}
+
+        {state === 'error' && (
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <AlertCircle className="h-3.5 w-3.5" />
+            Não foi possível verificar atualizações agora (sem internet?).
+          </p>
+        )}
+
+        <Button variant="outline" size="sm" onClick={() => void check()} disabled={state === 'checking'}>
+          <RefreshCw className="h-3.5 w-3.5" />
+          Verificar novamente
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Painel de manutenção: exclusivo do técnico (IT) */
 function MaintenanceCard({ settings }: { settings?: Settings }) {
   const qc = useQueryClient()
   const [mode, setMode] = useState<boolean | null>(null)
@@ -178,7 +275,9 @@ function MaintenanceCard({ settings }: { settings?: Settings }) {
       }),
     onSuccess: (r) => {
       toast.success(
-        r.settings.maintenanceMode ? 'Manutenção ATIVADA — só o técnico pode entrar.' : 'Manutenção desativada — sistema aberto.',
+        r.settings.maintenanceMode
+          ? 'Manutenção ATIVADA: só o técnico pode entrar.'
+          : 'Manutenção desativada: sistema aberto.',
       )
       setMode(null)
       setMessage('')

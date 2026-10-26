@@ -185,7 +185,7 @@ export default function RelatoriosView() {
           {(data.numAnnulled > 0 || data.totalAnnulled > 0) && (
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Ban className="h-3.5 w-3.5" />
-              {data.numAnnulled} venda(s) anulada(s) no período ({formatMoney(data.totalAnnulled, currency)}) — não entram nos totais.
+              {data.numAnnulled} venda(s) anulada(s) no período ({formatMoney(data.totalAnnulled, currency)}): não entram nos totais.
             </p>
           )}
 

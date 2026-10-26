@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getSessionUser, unauthorized, forbidden, badRequest, hashPin, isPrivileged, maintenanceBlock } from '@/lib/auth'
 
-/** Lista de utilizadores (patrão) — o utilizador IT só aparece para o próprio IT */
+/** Lista de utilizadores (patrão) - o utilizador IT só aparece para o próprio IT */
 export async function GET() {
   const user = await getSessionUser()
   if (!user) return unauthorized()

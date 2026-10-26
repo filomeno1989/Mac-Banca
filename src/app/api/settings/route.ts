@@ -11,7 +11,7 @@ async function getOrCreateSetting() {
 }
 
 /**
- * Definições — leitura para qualquer sessão (o ecrã de login precisa do nome
+ * Definições - leitura para qualquer sessão (o ecrã de login precisa do nome
  * da banca e do aviso de manutenção). O fundo de caixa só o patrão/IT vê.
  */
 export async function GET() {

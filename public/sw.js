@@ -1,7 +1,7 @@
 /**
- * Service Worker — Mac Banca (PWA)
+ * Service Worker - Mac Banca (PWA)
  * Estratégia conservadora:
- *  - Nunca intercepta a API (/api/) — vendas e stock precisam de dados reais
+ *  - Nunca intercepta a API (/api/) - vendas e stock precisam de dados reais
  *  - Network-first com cache de apoio para navegações e estáticos
  *  - Se ficar offline, serve a última página conhecida
  */

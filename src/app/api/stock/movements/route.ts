@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
   } else if (type === 'PERDA') {
     delta = -Math.floor(Number(body.qty))
     if (!delta) return badRequest('A quantidade perdida deve ser maior que zero.')
-    // No modo offline a perda já foi registada — permitir stock negativo
+    // No modo offline a perda já foi registada - permitir stock negativo
     if (product.stock + delta < 0 && !body.clientRef) {
       return badRequest(`Stock atual (${product.stock}) é menor que a perda indicada.`)
     }

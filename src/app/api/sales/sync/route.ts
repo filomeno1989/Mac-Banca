@@ -5,8 +5,8 @@ import { createSaleRecord, SaleError } from '@/lib/sales'
 /**
  * Sincronização do modo offline.
  * Recebe um lote de vendas feitas sem internet e grava-as com:
- *  - idempotência (clientRef único — nunca duplica)
- *  - data original da venda (clientDate — relatórios corretos)
+ *  - idempotência (clientRef único - nunca duplica)
+ *  - data original da venda (clientDate - relatórios corretos)
  *  - stock pode ficar negativo (a venda já aconteceu na banca)
  * A sincronização é permitida mesmo em manutenção (é conclusão de dados).
  */

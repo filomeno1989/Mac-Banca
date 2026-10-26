@@ -37,6 +37,7 @@ import { api, NetworkError } from '@/lib/api-client'
 import * as offline from '@/lib/offline'
 import type { Product, Settings, StockMovement, User } from '@/lib/types'
 import { formatMoney, formatDateTime, moveLabel } from '@/lib/format'
+import { isPrivileged } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
 
 type MoveKind = 'ENTRADA' | 'PERDA' | 'AJUSTE'
@@ -57,7 +58,7 @@ function moveBadge(type: string) {
 
 export default function StockView({ user }: { user: User }) {
   const qc = useQueryClient()
-  const isPatrao = user.role === 'PATRAO'
+  const isPatrao = isPrivileged(user.role)
 
   const [search, setSearch] = useState('')
   const [moveType, setMoveType] = useState<MoveKind | null>(null)
@@ -154,7 +155,7 @@ export default function StockView({ user }: { user: User }) {
             moveType === 'ENTRADA' && newCost ? Number(newCost.replace(',', '.')) : undefined,
         })
         toast.warning(
-          `Sem internet — ${moveType === 'ENTRADA' ? 'entrada' : 'perda'} de "${moveProduct.name}" guardada e será sincronizada.`,
+          `Sem internet: ${moveType === 'ENTRADA' ? 'entrada' : 'perda'} de "${moveProduct.name}" guardada e será sincronizada.`,
           { duration: 6000 },
         )
         setMoveType(null)
@@ -456,7 +457,7 @@ export default function StockView({ user }: { user: User }) {
             )}
             {moveType === 'ENTRADA' && (
               <div className="grid gap-1.5">
-                <Label htmlFor="m-cost">Novo preço de custo ({currency}) — opcional</Label>
+                <Label htmlFor="m-cost">Novo preço de custo ({currency}), opcional</Label>
                 <Input
                   id="m-cost"
                   type="number"

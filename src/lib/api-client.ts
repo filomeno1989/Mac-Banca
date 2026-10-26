@@ -21,7 +21,7 @@ export async function api<T = unknown>(
     // falha de rede (sem internet, DNS, CORS mortal, etc.)
     throw new NetworkError()
   }
-  // gateway/timeout da rede — tratar como offline para permitir fila offline
+  // gateway/timeout da rede - tratar como offline para permitir fila offline
   if (res.status === 502 || res.status === 504) throw new NetworkError()
   const data: unknown = await res.json().catch(() => ({}))
   if (!res.ok) {

@@ -13,6 +13,7 @@ import {
   Receipt,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { isPrivileged } from '@/lib/auth-client'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
@@ -89,7 +90,7 @@ export default function DashboardView({
   onNavigate: (v: ViewKey) => void
 }) {
   const [saleId, setSaleId] = useState<number | null>(null)
-  const isPatrao = user.role === 'PATRAO'
+  const isPatrao = isPrivileged(user.role)
 
   const settingsQuery = useQuery({
     queryKey: ['settings'],

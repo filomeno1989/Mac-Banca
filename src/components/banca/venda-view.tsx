@@ -222,7 +222,7 @@ export default function VendaView({ user }: { user: User }) {
           offlineRef: r.ref,
         })
         toast.warning(
-          'Sem internet — venda guardada no aparelho. Sincroniza sozinha quando a rede voltar.',
+          'Sem internet: venda guardada no aparelho. Sincroniza sozinha quando a rede voltar.',
           { duration: 6000 },
         )
       }
@@ -324,7 +324,7 @@ export default function VendaView({ user }: { user: User }) {
                 type="number"
                 inputMode="decimal"
                 min={0}
-                placeholder={`Recebido (${currency}) — opcional`}
+                placeholder={`Recebido (${currency}), opcional`}
                 value={received}
                 onChange={(e) => setReceived(e.target.value)}
               />
@@ -378,7 +378,7 @@ export default function VendaView({ user }: { user: User }) {
           {offlineMode && (
             <div className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
               <CloudOff className="h-3.5 w-3.5" />
-              Modo offline — preços e stock em cache neste aparelho
+              Modo offline: preços e stock em cache neste aparelho
             </div>
           )}
           <div className="relative">

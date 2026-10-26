@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
 import { Loader2, Wrench, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api-client'
+import { isPrivileged } from '@/lib/auth-client'
 import type { Settings, User } from '@/lib/types'
 import LoginScreen from './login-screen'
 import AppShell from './app-shell'
@@ -21,6 +22,28 @@ export type ViewKey =
   | 'relatorios'
   | 'funcionarios'
   | 'definicoes'
+
+const VIEW_KEYS: ViewKey[] = [
+  'inicio',
+  'vender',
+  'produtos',
+  'stock',
+  'fechos',
+  'relatorios',
+  'funcionarios',
+  'definicoes',
+]
+const PATRAO_ONLY_VIEWS: ViewKey[] = ['fechos', 'relatorios', 'funcionarios', 'definicoes']
+
+/** Lê a vista do hash (#/vender). Ignora vistas sem permissão. */
+function viewFromHash(user: User | null): ViewKey | null {
+  if (typeof window === 'undefined') return null
+  const h = window.location.hash.replace(/^#\/?/, '')
+  if (!(VIEW_KEYS as string[]).includes(h)) return null
+  const v = h as ViewKey
+  if (PATRAO_ONLY_VIEWS.includes(v) && !(user && isPrivileged(user.role))) return null
+  return v
+}
 
 function Splash() {
   return (
@@ -73,6 +96,34 @@ function BancaInner() {
     staleTime: Infinity,
   })
 
+  const user = meQuery.data ?? null
+
+  // Histórico do navegador: a vista atual entra no histórico, para o botão
+  // voltar (Android/ APK e browser) navegar dentro da app em vez de sair.
+  useEffect(() => {
+    if (!user) return
+    const v = viewFromHash(user)
+    if (v) setView(v)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!user) return
+    const target = `#/${view}`
+    if (window.location.hash !== target) {
+      window.history.pushState({ view }, '', target)
+    }
+  }, [view, user])
+
+  useEffect(() => {
+    const onPop = () => {
+      if (!user) return
+      setView(viewFromHash(user) ?? 'inicio')
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [user])
+
   // Estado de manutenção (poll para o patrão ver quando o técnico ativa)
   const settingsQuery = useQuery({
     queryKey: ['settings'],
@@ -83,8 +134,6 @@ function BancaInner() {
   })
 
   if (meQuery.isLoading) return <Splash />
-
-  const user = meQuery.data ?? null
 
   if (!user) {
     return (

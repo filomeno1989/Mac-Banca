@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useOffline } from './offline-provider'
 
-/** Faixa de estado do modo offline — mostrada no topo do conteúdo */
+/** Faixa de estado do modo offline - mostrada no topo do conteúdo */
 export default function OfflineBanner() {
   const { online, pending, syncing, syncNow } = useOffline()
 
@@ -24,12 +24,12 @@ export default function OfflineBanner() {
         <span className="min-w-0 flex-1">
           {pending > 0 ? (
             <>
-              <b>Sem internet</b> — {pending} registo(s) guardado(s) neste aparelho. Continue a
+              <b>Sem internet</b>: {pending} registo(s) guardado(s) neste aparelho. Continue a
               vender; sincroniza automaticamente quando a rede voltar.
             </>
           ) : (
             <>
-              <b>Sem internet</b> — pode continuar a vender; tudo fica guardado e sincroniza
+              <b>Sem internet</b>: pode continuar a vender; tudo fica guardado e sincroniza
               sozinho depois.
             </>
           )}
@@ -48,7 +48,7 @@ export default function OfflineBanner() {
     >
       <CloudUpload className="h-4 w-4 shrink-0" />
       <span className="min-w-0 flex-1">
-        Internet voltou — <b>{pending}</b> registo(s) à espera de sincronização.
+        Internet voltou: <b>{pending}</b> registo(s) à espera de sincronização.
       </span>
       <Button size="sm" className="h-8" onClick={() => void syncNow()} disabled={syncing}>
         {syncing ? (

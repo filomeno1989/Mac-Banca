@@ -55,6 +55,9 @@ jobs:
       - name: Assinatura e versão
         run: node apk/scripts/patch-signing.js
 
+      - name: Botão voltar do Android (histórico + saída com dois toques)
+        run: node apk/scripts/patch-mainactivity.js
+
       - name: Build APK (release assinado)
         working-directory: apk/android
         run: |

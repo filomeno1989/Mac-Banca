@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSessionUser, unauthorized, round2 } from '@/lib/auth'
+import { getSessionUser, unauthorized, round2, isPrivileged } from '@/lib/auth'
 import { dayString, dayStart, dayEnd, addDays, today } from '@/lib/tz'
 import type { DayPoint } from '@/lib/types'
 
@@ -8,7 +8,7 @@ import type { DayPoint } from '@/lib/types'
 export async function GET() {
   const user = await getSessionUser()
   if (!user) return unauthorized()
-  const isPatrao = user.role === 'PATRAO'
+  const isPatrao = isPrivileged(user.role)
 
   const day = today()
   const yesterday = addDays(day, -1)
