@@ -1,7 +1,7 @@
 {
-  "name": "Gestão de Banca",
-  "short_name": "Banca",
-  "description": "Sistema de gestão para bancas: vendas, stock, lucros e fecho de caixa, tudo de casa.",
+  "name": "Mac Banca",
+  "short_name": "Mac Banca",
+  "description": "Mac Banca — vendas, stock, lucros e fecho de caixa, tudo de casa.",
   "lang": "pt",
   "dir": "ltr",
   "start_url": "/",
@@ -10,7 +10,11 @@
   "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#059669",
-  "categories": ["business", "finance", "productivity"],
+  "categories": [
+    "business",
+    "finance",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",

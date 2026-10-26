@@ -13,10 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Gestão de Banca — Vendas, Stock e Lucros",
+  title: "Mac Banca — Vendas, Stock e Lucros",
   description:
     "Sistema completo de gestão para bancas: registe vendas, controle o stock, veja lucros e faça o fecho de caixa, tudo de casa.",
-  applicationName: "Gestão de Banca",
+  applicationName: "Mac Banca",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

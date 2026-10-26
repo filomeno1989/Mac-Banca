@@ -1,11 +1,11 @@
 /**
- * Service Worker — Gestão de Banca (PWA)
+ * Service Worker — Mac Banca (PWA)
  * Estratégia conservadora:
  *  - Nunca intercepta a API (/api/) — vendas e stock precisam de dados reais
  *  - Network-first com cache de apoio para navegações e estáticos
  *  - Se ficar offline, serve a última página conhecida
  */
-const CACHE = 'banca-cache-v1';
+const CACHE = 'banca-cache-v2';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

@@ -1,5 +1,5 @@
 /**
- * Modo offline com sincronização — Gestão de Banca
+ * Modo offline com sincronização — Mac Banca
  *
  * Como funciona:
  *  1. Sem internet, as vendas e movimentos de stock são guardados numa fila
