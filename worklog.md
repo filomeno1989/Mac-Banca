@@ -161,3 +161,27 @@ Stage Summary:
 - APK: https://github.com/filomeno1989/Mac-Banca/releases/download/v1.2.0/Mac-Banca-1.2.0.apk (3,03 MB, versionCode 10200)
 - Banner de atualização ativo: app instalada v1.1.2 recebe aviso da v1.2.0 e instala por cima sem perder dados
 - Para o usuário: preencher nas Definições o contacto, NUIT e endereço (produção ainda sem esses dados) e fazer o primeiro backup
+
+---
+Task ID: 8
+Agent: Z.ai (main)
+Task: v1.3.0 - fotos de produtos, atualizacao direto na app, impressora de recibos, guia unico
+
+Work Log:
+- Descoberta importante: prisma/schema.prisma e REGENERADO por pick-schema.js a partir de schema.sqlite.prisma / schema.postgres.prisma; a fonte sqlite estava desatualizada desde a v1.2.0 (sem ownerPhone/nuit/etc). Alinhadas as tres fontes: Product.imageUrl + Setting.printerWidth/autoPrintReceipt (e campos v1.2.0 no sqlite)
+- db push local (sqlite) + Supabase 5432 (postgres); client regenerado
+- Fotos de produtos: POST/PATCH /api/products aceitam imageUrl dataURL (validado <=600KB); /api/products devolve hasImage (payload leve); NOVO /api/products/[id]/image serve os bytes com ETag/304 + Cache-Control; lib/image.ts comprime no cliente (max 512px, JPEG q0.78, fundo branco); produtos-view: bloco de foto no dialog (Escolher/Trocar/Remover, imageChanged evita limpar sem querer) + miniaturas na tabela e lista mobile; venda-view: foto no cartao do PDV; backup inclui fotos (GET e POST roundtrip testado)
+- Atualizacao DIRETO na app: apk/scripts/patch-updater.js NOVO cria HeliUpdatePlugin.java (descarrega APK com HttpURLConnection + progresso notifyListeners, instala via FileProvider authority {pkg}.fileprovider, REQUEST_INSTALL_PACKAGES + ACTION_MANAGE_UNKNOWN_APP_SOURCES), regista no MainActivity.onCreate, injeta permissao e cache-path heliupdate no file_paths.xml; workflow apk.yml com step novo; lib/updater.ts (isNativeApp, downloadAndInstallApk com listener de progresso); banner global e UpdatesCard com barra de progresso e botao Atualizar agora (web mantem openExternal)
+- Impressora: card nas Definicoes com largura 58/80 mm + switch de impressao automatica apos venda (PATCH /api/settings); receipt.ts respeita printerWidth em @page e jsPDF; venda-view chama printReceipt apos venda online se autoPrintReceipt
+- Definicoes: card "Como funciona o sistema" removido (pedido do usuario; a pagina Ajuda e o guia unico); BackupCard menciona fotos
+- Tutorial: NOVIDADES v1.3.0 (fotos, atualizacao direta, impressora, guia unico, backup com fotos); secoes produtos/recibos/definicoes/atualizar reescritas
+- FIX a partir de screenshot do usuario: vista Stock em telemovel mostrava nomes cortados ("2...", "B...") - botoes Repor/Perda/Ajustar agora em linha propria (flex-1) e valor do stock sem truncate
+- QA local: curl E2E (criar produto com foto, GET hasImage, imagem 200/304, PATCH trocar/limpar, settings impressora, funcionario 403, backup roundtrip com foto sobrevivendo, DELETE); agent-browser: login PIN, dialog de foto com compressao real 800x800 -> 512x512 (5 KB), thumb na lista e no PDV, card Impressora guardou (autoPrint=true na BD), card "Como funciona" ausente, novidades v1.3.0 no Ajuda; lint limpo
+- Deploy: commit 262f903 + 306e944 -> Vercel READY; producao com hasImage/printerWidth; workflow APK run 40388355218 SUCCESS; Release v1.3.0 (3,03 MB); APK validado: assinatura v2, versionCode 10300, HeliUpdatePlugin no dex, REQUEST_INSTALL_PACKAGES no manifest, cache-path heliupdate (res/8K.xml); /api/app-release devolve 1.3.0 (banner ativo)
+- upload/ adicionado ao .gitignore (imagem enviada via chat nao vai para o repo)
+
+Stage Summary:
+- Producao: https://mac-banca.vercel.app (commit 306e944)
+- APK: https://github.com/filomeno1989/Mac-Banca/releases/download/v1.3.0/Mac-Banca-1.3.0.apk (versionCode 10300)
+- Atualizacao v1.2.0 -> v1.3.0 agora acontece 100% dentro da app (baixa + instalador), sem navegador
+- Fotos ficam na propria BD (entram no backup); compressao automatica; proximo passo natural: impressora termica Bluetooth (roadmap)
