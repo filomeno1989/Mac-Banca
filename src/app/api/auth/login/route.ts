@@ -55,6 +55,9 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Higiene: apagar sessões expiradas antes de criar a nova
+  await db.session.deleteMany({ where: { expiresAt: { lt: new Date() } } })
+
   const token = await createSession(user.id)
   const res = NextResponse.json({
     user: { id: user.id, name: user.name, username: user.username, role: user.role },
