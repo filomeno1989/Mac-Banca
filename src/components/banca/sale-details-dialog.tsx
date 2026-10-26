@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Ban, CheckCircle2 } from 'lucide-react'
+import { Ban, CheckCircle2, Share2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { api } from '@/lib/api-client'
-import type { Sale } from '@/lib/types'
+import { openExternal } from '@/lib/version'
+import type { Sale, Settings } from '@/lib/types'
 import { formatMoney, formatDateTime, paymentLabel } from '@/lib/format'
 
 export default function SaleDetailsDialog({
@@ -42,6 +43,13 @@ export default function SaleDetailsDialog({
   currency: string
 }) {
   const qc = useQueryClient()
+
+  const settingsQuery = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api<{ settings: Settings }>('/api/settings'),
+    staleTime: Infinity,
+  })
+  const businessName = settingsQuery.data?.settings.businessName ?? 'Mac Banca'
 
   const saleQuery = useQuery({
     queryKey: ['sale', saleId],
@@ -64,6 +72,29 @@ export default function SaleDetailsDialog({
   })
 
   const sale = saleQuery.data?.sale
+
+  // Recibo em texto para partilhar (nativo ou WhatsApp)
+  const shareText = sale
+    ? [
+        businessName,
+        `Venda #${sale.id} : ${formatDateTime(sale.createdAt)}`,
+        ...(sale.items ?? []).map((it) => `${it.qty}x ${it.name} = ${formatMoney(it.subtotal, currency)}`),
+        `Total: ${formatMoney(sale.total, currency)} (${paymentLabel(sale.payment)})`,
+        `Atendeu: ${sale.user.name}`,
+      ].join('\n')
+    : ''
+
+  const share = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ text: shareText })
+        return
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return
+    }
+    openExternal(`https://wa.me/?text=${encodeURIComponent(shareText)}`)
+  }
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -135,6 +166,13 @@ export default function SaleDetailsDialog({
                 </span>
               )}
             </div>
+
+            {sale.status === 'CONCLUIDA' && (
+              <Button variant="outline" className="w-full" onClick={() => share()}>
+                <Share2 className="h-4 w-4" />
+                Partilhar recibo
+              </Button>
+            )}
 
             {isPatrao && sale.status === 'CONCLUIDA' && (
               <AlertDialog>

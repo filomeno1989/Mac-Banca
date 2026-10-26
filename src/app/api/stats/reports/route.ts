@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSessionUser, unauthorized, forbidden, round2 } from '@/lib/auth'
-import { dayString, dayStart, dayEnd, addDays, today } from '@/lib/tz'
+import { getSessionUser, unauthorized, forbidden, round2, isPrivileged } from '@/lib/auth'
+import { TZ, dayString, dayStart, dayEnd, addDays, today } from '@/lib/tz'
 import type { DayPoint, TopProduct } from '@/lib/types'
 
-/** Relatório de vendas por período (patrão) */
+/** Relatório de vendas por período (patrão e técnico). format=csv devolve ficheiro Excel */
 export async function GET(req: NextRequest) {
   const user = await getSessionUser()
   if (!user) return unauthorized()
-  if (user.role !== 'PATRAO') return forbidden()
+  if (!isPrivileged(user.role)) return forbidden()
 
   const url = new URL(req.url)
   const range = url.searchParams.get('range') ?? '7dias'
@@ -39,9 +39,43 @@ export async function GET(req: NextRequest) {
 
   const sales = await db.sale.findMany({
     where: { createdAt: { gte: dayStart(from), lte: dayEnd(to) }, status: 'CONCLUIDA' },
-    include: { items: true },
+    include: { items: true, user: { select: { name: true } } },
     orderBy: { createdAt: 'asc' },
   })
+
+  // Exportação CSV (abre direto no Excel): uma linha por item de venda
+  if (url.searchParams.get('format') === 'csv') {
+    const q = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`
+    const num = (n: number) => String(round2(n)).replace('.', ',')
+    const payLabel: Record<string, string> = {
+      DINHEIRO: 'Dinheiro', MPESA: 'M-Pesa', EMOLA: 'e-Mola', CARTAO: 'Cartão', OUTRO: 'Outro',
+    }
+    const hourFmt = new Intl.DateTimeFormat('pt-PT', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
+    const rows: string[] = [
+      ['Data', 'Hora', 'Venda', 'Produto', 'Qtd', 'Preço unitário', 'Subtotal', 'Pagamento', 'Atendido por']
+        .map(q).join(';'),
+    ]
+    for (const s of sales) {
+      const base = [dayString(s.createdAt), hourFmt.format(s.createdAt), s.id].map(q)
+      for (const it of s.items) {
+        rows.push([
+          ...base,
+          q(it.name),
+          String(it.qty),
+          num(it.subtotal / (it.qty || 1)),
+          num(it.subtotal),
+          q(payLabel[s.payment] ?? s.payment),
+          q(s.user?.name ?? ''),
+        ].join(';'))
+      }
+    }
+    return new NextResponse('\ufeff' + rows.join('\r\n'), {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="mac-banca-vendas-${from}_a_${to}.csv"`,
+      },
+    })
+  }
 
   const annulled = await db.sale.findMany({
     where: { createdAt: { gte: dayStart(from), lte: dayEnd(to) }, status: 'ANULADA' },

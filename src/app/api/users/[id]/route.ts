@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSessionUser, unauthorized, forbidden, badRequest, hashPin } from '@/lib/auth'
+import { getSessionUser, unauthorized, forbidden, badRequest, hashPin, isPrivileged } from '@/lib/auth'
 
-/** Editar utilizador (patrão): ativar/desativar, renomear, mudar PIN */
+/** Editar utilizador (patrão e técnico): renomear, mudar PIN, ativar/desativar */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser()
   if (!user) return unauthorized()
-  if (user.role !== 'PATRAO') return forbidden()
+  if (!isPrivileged(user.role)) return forbidden()
 
   const { id } = await params
   const targetId = Number(id)
   const target = await db.user.findUnique({ where: { id: targetId } })
   if (!target) return badRequest('Utilizador não encontrado.')
+  // A conta técnica (IT) só pode ser alterada pelo próprio IT
+  if (target.role === 'IT' && user.role !== 'IT') return forbidden()
 
   const body = (await req.json().catch(() => ({}))) as {
     name?: string

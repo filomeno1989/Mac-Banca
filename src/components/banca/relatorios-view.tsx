@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Banknote, TrendingUp, Percent, ShoppingBasket, Ticket, Ban } from 'lucide-react'
+import { toast } from 'sonner'
+import { Banknote, TrendingUp, Percent, ShoppingBasket, Ticket, Ban, Download } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
@@ -96,13 +97,50 @@ export default function RelatoriosView() {
 
   const maxPayment = data?.byPayment[0]?.total ?? 1
 
+  const exportCsv = async () => {
+    try {
+      const params = new URLSearchParams({ range })
+      if (range === 'custom' && applied) {
+        params.set('from', applied.from)
+        params.set('to', applied.to)
+      }
+      params.set('format', 'csv')
+      const r = await fetch(`/api/stats/reports?${params.toString()}`)
+      if (!r.ok) throw new Error()
+      const blob = await r.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `mac-banca-vendas-${data?.from ?? 'periodo'}_a_${data?.to ?? 'fim'}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(a.href)
+      toast.success('Ficheiro CSV descarregado.')
+    } catch {
+      toast.error('Não foi possível gerar o ficheiro.')
+    }
+  }
+
   return (
     <div className="space-y-4 md:space-y-6">
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Relatórios</h1>
-        <p className="text-sm text-muted-foreground">
-          Acompanhe as vendas, lucros e os produtos mais vendidos.
-        </p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Relatórios</h1>
+          <p className="text-sm text-muted-foreground">
+            Acompanhe as vendas, lucros e os produtos mais vendidos.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          disabled={query.isLoading || !data}
+          onClick={() => exportCsv()}
+        >
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Exportar CSV</span>
+          <span className="sm:hidden">CSV</span>
+        </Button>
       </div>
 
       <Tabs value={range} onValueChange={(v) => setRange(v as Range)}>

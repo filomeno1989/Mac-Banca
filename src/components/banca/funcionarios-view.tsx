@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { UserPlus, KeyRound, Users as UsersIcon } from 'lucide-react'
+import { UserPlus, Pencil, Users as UsersIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,9 +44,9 @@ interface AppUser {
 export default function FuncionariosView() {
   const qc = useQueryClient()
   const [addOpen, setAddOpen] = useState(false)
-  const [pinUser, setPinUser] = useState<AppUser | null>(null)
+  const [editUser, setEditUser] = useState<AppUser | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', pin: '' })
   const [form, setForm] = useState({ name: '', username: '', pin: '', role: 'FUNCIONARIO' })
-  const [newPin, setNewPin] = useState('')
 
   const usersQuery = useQuery({
     queryKey: ['users'],
@@ -79,15 +79,23 @@ export default function FuncionariosView() {
     onError: (e) => toast.error(e instanceof Error ? e.message : 'Erro'),
   })
 
-  const pinMutation = useMutation({
+  const editMutation = useMutation({
     mutationFn: () =>
-      api(`/api/users/${pinUser?.id}`, { method: 'PATCH', json: { pin: newPin } }),
+      api(`/api/users/${editUser?.id}`, {
+        method: 'PATCH',
+        json: {
+          name: editForm.name.trim(),
+          ...(editForm.pin ? { pin: editForm.pin } : {}),
+        },
+      }),
     onSuccess: () => {
-      toast.success(`PIN de ${pinUser?.name} alterado!`)
-      setPinUser(null)
-      setNewPin('')
+      toast.success(`Conta de ${editUser?.name} atualizada!`)
+      setEditUser(null)
+      qc.invalidateQueries({ queryKey: ['users'] })
+      qc.invalidateQueries({ queryKey: ['login-users'] })
+      qc.invalidateQueries({ queryKey: ['me'] })
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : 'Erro'),
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Erro ao guardar'),
   })
 
   return (
@@ -150,12 +158,12 @@ export default function FuncionariosView() {
                     size="sm"
                     className="h-7 text-xs"
                     onClick={() => {
-                      setPinUser(u)
-                      setNewPin('')
+                      setEditUser(u)
+                      setEditForm({ name: u.name, pin: '' })
                     }}
                   >
-                    <KeyRound className="h-3.5 w-3.5" />
-                    PIN
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
                   </Button>
                 </div>
               </CardContent>
@@ -241,34 +249,51 @@ export default function FuncionariosView() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog mudar PIN */}
-      <Dialog open={pinUser !== null} onOpenChange={(v) => !v && setPinUser(null)}>
+      {/* Dialog editar utilizador: nome e PIN opcional */}
+      <Dialog open={editUser !== null} onOpenChange={(v) => !v && setEditUser(null)}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
-            <DialogTitle>Alterar PIN de {pinUser?.name}</DialogTitle>
-            <DialogDescription>Digite um PIN novo com 4 a 6 dígitos.</DialogDescription>
+            <DialogTitle>Editar {editUser?.name}</DialogTitle>
+            <DialogDescription>
+              O nome aparece no ecrã de entrada e nas vendas. Deixe o PIN vazio para manter o atual.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-1.5">
-            <Label htmlFor="new-pin">PIN novo</Label>
-            <Input
-              id="new-pin"
-              type="password"
-              inputMode="numeric"
-              maxLength={6}
-              value={newPin}
-              onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
-              placeholder="••••"
-            />
+          <div className="grid gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-name">Nome</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="Ex.: Filomeno Macuácua"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-pin">PIN novo (opcional)</Label>
+              <Input
+                id="edit-pin"
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={editForm.pin}
+                onChange={(e) => setEditForm({ ...editForm, pin: e.target.value.replace(/\D/g, '') })}
+                placeholder="manter o atual"
+              />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPinUser(null)}>
+            <Button variant="outline" onClick={() => setEditUser(null)}>
               Cancelar
             </Button>
             <Button
-              onClick={() => pinMutation.mutate()}
-              disabled={!/^\d{4,6}$/.test(newPin) || pinMutation.isPending}
+              onClick={() => editMutation.mutate()}
+              disabled={
+                !editForm.name.trim() ||
+                (editForm.pin !== '' && !/^\d{4,6}$/.test(editForm.pin)) ||
+                editMutation.isPending
+              }
             >
-              Guardar PIN
+              Guardar
             </Button>
           </DialogFooter>
         </DialogContent>
