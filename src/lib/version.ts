@@ -41,25 +41,13 @@ export async function getInstalledVersion(): Promise<{ version: string; source: 
   return { version: APP_VERSION, source: 'web' }
 }
 
-/** Consulta a release mais recente no GitHub (repo público, sem autenticação) */
+/** Consulta a release mais recente (via API própria, com cache server-side) */
 export async function fetchLatestRelease(): Promise<ReleaseInfo | null> {
   try {
-    const r = await fetch(RELEASES_URL, { headers: { Accept: 'application/vnd.github+json' } })
+    const r = await fetch('/api/app-release', { cache: 'no-store' })
     if (!r.ok) return null
-    const d = (await r.json()) as {
-      tag_name?: string
-      html_url?: string
-      body?: string
-      assets?: { name?: string; browser_download_url?: string }[]
-    }
-    if (!d.tag_name) return null
-    const apk = (d.assets ?? []).find((a) => a.name?.endsWith('.apk'))
-    return {
-      tag: d.tag_name,
-      version: d.tag_name.replace(/^v/, ''),
-      downloadUrl: apk?.browser_download_url ?? d.html_url ?? '',
-      notes: d.body ?? '',
-    }
+    const d = (await r.json()) as { release: ReleaseInfo | null }
+    return d.release ?? null
   } catch {
     return null
   }
