@@ -112,3 +112,24 @@ Stage Summary:
 - Atualização interna testável de ponta a ponta: v1.1.0 instalada vê o banner e instala a v1.1.1 por cima (sem desinstalar, sem perder dados)
 - Logo M.B no launcher garantido pelas camadas adaptativas; cache do launcher pode exigir reiniciar o aparelho
 
+---
+Task ID: 6
+Agent: Z.ai (main)
+Task: Varredura clínica Fase 1 + editar nome do utilizador (v1.1.2)
+
+Work Log:
+- Funcionários: dialog Editar (nome + PIN opcional) substitui o botão PIN; invalida users/login-users/me (nome atualiza no login e na sessão)
+- Permissões IT corrigidas: /api/stats/reports e /api/closures/today e PATCH /api/users/[id] agora usam isPrivileged (IT estava bloqueado em todos); conta IT só editável pelo próprio IT (patrão recebia 403 ao tocar nela)
+- Exportar CSV: /api/stats/reports?format=csv (BOM UTF-8, separador ;, decimais vírgula, uma linha por item, pagamento e atendente); botão nos Relatórios com download blob
+- Partilhar recibo: sale-details-dialog com navigator.share e fallback wa.me (openExternal); texto com nome da banca, itens, total, pagamento e atendente; sem lucros no recibo
+- Login apaga sessões expiradas (deleteMany) antes de criar nova
+- E2E produção (de54218): CSV 200 patrão/403 funcionário; closures/today 200 IT; patrão->IT PATCH 403; IT self-PATCH 200; renomear funcionário 200
+- APK v1.1.2: run 40373632410 SUCCESS; versionCode 10102, versionName 1.1.2, assinado; Release publicada; /api/app-release a devolver 1.1.2 (banner aparece na app instalada)
+
+Stage Summary:
+- Produção: https://mac-banca.vercel.app (commit de54218), SW cache v4
+- APK: https://github.com/filomeno1989/Mac-Banca/releases/download/v1.1.2/Mac-Banca-1.1.2.apk (3,03 MB)
+- Fase 2 proposta (a confirmar): filtro por categoria no PDV/produtos, exportar produtos/stock, recibo com nome da banca configurável, lucro por categoria
+- Nomes reais dos utilizadores ficam para o usuário definir via Funcionários > Editar (não inventar)
+
+
