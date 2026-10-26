@@ -29,6 +29,8 @@ export async function GET() {
       nuit: logged ? setting.nuit : undefined,
       address: logged ? setting.address : undefined,
       receiptFooter: logged ? setting.receiptFooter : undefined,
+      printerWidth: logged ? setting.printerWidth : undefined,
+      autoPrintReceipt: logged ? setting.autoPrintReceipt : undefined,
       maintenanceMode: setting.maintenanceMode,
       maintenanceMessage: setting.maintenanceMessage,
     },
@@ -49,6 +51,8 @@ export async function PATCH(req: NextRequest) {
     nuit?: string
     address?: string
     receiptFooter?: string
+    printerWidth?: string
+    autoPrintReceipt?: boolean
     maintenanceMode?: boolean
     maintenanceMessage?: string
   }
@@ -85,6 +89,11 @@ export async function PATCH(req: NextRequest) {
     const v = String(body.receiptFooter).trim().slice(0, 200)
     data.receiptFooter = v || null
   }
+  if (body.printerWidth !== undefined) {
+    const v = String(body.printerWidth).trim() === '58' ? '58' : '80'
+    data.printerWidth = v
+  }
+  if (body.autoPrintReceipt !== undefined) data.autoPrintReceipt = Boolean(body.autoPrintReceipt)
   if (body.maintenanceMode !== undefined || body.maintenanceMessage !== undefined) {
     if (user.role !== 'IT') {
       return NextResponse.json(
@@ -109,6 +118,8 @@ export async function PATCH(req: NextRequest) {
       nuit: updated.nuit,
       address: updated.address,
       receiptFooter: updated.receiptFooter,
+      printerWidth: updated.printerWidth,
+      autoPrintReceipt: updated.autoPrintReceipt,
       maintenanceMode: updated.maintenanceMode,
       maintenanceMessage: updated.maintenanceMessage,
     },

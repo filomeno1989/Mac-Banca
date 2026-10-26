@@ -45,6 +45,7 @@ model Product {
   stock      Int             @default(0)
   minStock   Int             @default(5)
   active     Boolean         @default(true)
+  imageUrl   String? // foto do produto (dataURL comprimido no cliente)
   createdAt  DateTime        @default(now())
   saleItems  SaleItem[]
   stockMoves StockMovement[]
@@ -118,6 +119,8 @@ model Setting {
   nuit               String? // NUIT da banca (recibos e exportações)
   address            String? // endereço/local da banca (recibos)
   receiptFooter      String? // mensagem no rodapé dos recibos
+  printerWidth       String   @default("80") // largura do papel do recibo: 58 ou 80
+  autoPrintReceipt   Boolean  @default(false) // abrir a impressão ao finalizar cada venda
   maintenanceMode    Boolean  @default(false) // quando ativo, só o utilizador IT entra
   maintenanceMessage String? // mensagem exibida durante a manutenção
   updatedAt          DateTime @updatedAt

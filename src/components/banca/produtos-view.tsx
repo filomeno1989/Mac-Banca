@@ -1,9 +1,9 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Pencil, Archive, Search, Package, RotateCcw, Download } from 'lucide-react'
+import { Plus, Pencil, Archive, Search, Package, RotateCcw, Download, ImagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -47,6 +47,7 @@ import {
 import { api } from '@/lib/api-client'
 import { isPrivileged } from '@/lib/auth-client'
 import { mergeCategories, normalizeCategory } from '@/lib/categories'
+import { compressImage } from '@/lib/image'
 import type { Product, Settings, User } from '@/lib/types'
 import { formatMoney } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -62,6 +63,8 @@ interface ProductForm {
   minStock: string
   stock: string
   active: boolean
+  imageUrl: string | null // dataURL da foto escolhida (ou null para remover)
+  imageChanged: boolean // só envia a foto quando foi tocada no formulário
 }
 
 const emptyForm: ProductForm = {
@@ -73,6 +76,33 @@ const emptyForm: ProductForm = {
   minStock: '5',
   stock: '0',
   active: true,
+  imageUrl: null,
+  imageChanged: false,
+}
+
+/** Miniatura da foto do produto (carrega do endpoint a preguiça, com ETag) */
+function ProductThumb({ p, size = 40 }: { p: Product; size?: number }) {
+  if (!p.hasImage) {
+    return (
+      <span
+        className="flex shrink-0 items-center justify-center rounded-lg border bg-muted/40 text-muted-foreground"
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+      >
+        <Package className="h-4 w-4" />
+      </span>
+    )
+  }
+  return (
+     
+    <img
+      src={`/api/products/${p.id}/image`}
+      alt={`Foto de ${p.name}`}
+      loading="lazy"
+      className="shrink-0 rounded-lg border object-cover"
+      style={{ width: size, height: size }}
+    />
+  )
 }
 
 function stockBadge(p: Product) {
@@ -96,6 +126,7 @@ export default function ProdutosView({ user }: { user: User }) {
   const [editing, setEditing] = useState<Product | null>(null)
   const [form, setForm] = useState<ProductForm>(emptyForm)
   const [toArchive, setToArchive] = useState<Product | null>(null)
+  const photoRef = useRef<HTMLInputElement>(null)
 
   const settingsQuery = useQuery({
     queryKey: ['settings'],
@@ -139,6 +170,15 @@ export default function ProdutosView({ user }: { user: User }) {
     setDialogOpen(true)
   }
 
+  const pickPhoto = async (f: File) => {
+    try {
+      const dataUrl = await compressImage(f)
+      setForm((cur) => ({ ...cur, imageUrl: dataUrl, imageChanged: true }))
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Não foi possível carregar a foto.')
+    }
+  }
+
   const saveMutation = useMutation({
     mutationFn: () => {
       const payload = {
@@ -150,6 +190,7 @@ export default function ProdutosView({ user }: { user: User }) {
         minStock: Number(form.minStock) || 0,
         stock: Number(form.stock) || 0,
         ...(editing ? { active: form.active } : {}),
+        ...(form.imageChanged ? { imageUrl: form.imageUrl } : {}),
       }
       if (editing) {
         return api(`/api/products/${editing.id}`, { method: 'PATCH', json: payload })
@@ -310,12 +351,17 @@ export default function ProdutosView({ user }: { user: User }) {
                   {filtered.map((p) => (
                     <TableRow key={p.id} className={cn(!p.active && 'opacity-50')}>
                       <TableCell className="font-medium">
-                        {p.name}
-                        {!p.active && (
-                          <Badge variant="outline" className="ml-2">
-                            arquivado
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-2.5">
+                          <ProductThumb p={p} size={40} />
+                          <span>
+                            {p.name}
+                            {!p.active && (
+                              <Badge variant="outline" className="ml-2">
+                                arquivado
+                              </Badge>
+                            )}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{p.category}</TableCell>
                       {isPatrao && (
@@ -363,6 +409,7 @@ export default function ProdutosView({ user }: { user: User }) {
             {filtered.map((p) => (
               <Card key={p.id} className={cn(!p.active && 'opacity-50')}>
                 <CardContent className="flex items-center gap-3 p-3">
+                  <ProductThumb p={p} size={48} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm truncate">{p.name}</p>
@@ -424,6 +471,81 @@ export default function ProdutosView({ user }: { user: User }) {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
+            {/* Foto do produto */}
+            <div className="flex items-center gap-3 rounded-lg border p-3">
+              {form.imageUrl ? (
+                <span className="relative shrink-0">
+                  { }
+                  <img
+                    src={form.imageUrl}
+                    alt="Foto escolhida"
+                    className="h-16 w-16 rounded-lg border object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, imageUrl: null, imageChanged: true })}
+                    className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-white shadow"
+                    aria-label="Remover foto"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              ) : editing?.hasImage ? (
+                 
+                <img
+                  src={`/api/products/${editing.id}/image`}
+                  alt="Foto atual"
+                  className="h-16 w-16 rounded-lg border object-cover"
+                />
+              ) : (
+                <span
+                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border bg-muted/40 text-muted-foreground"
+                  aria-hidden="true"
+                >
+                  <Package className="h-6 w-6" />
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Foto do produto</p>
+                <p className="text-xs text-muted-foreground">
+                  Aparece nos produtos e no ecrã de vender. A foto é reduzida automaticamente.
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => photoRef.current?.click()}
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  {form.imageUrl || editing?.hasImage ? 'Trocar' : 'Escolher foto'}
+                </Button>
+                {(form.imageUrl || editing?.hasImage) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={() => setForm({ ...form, imageUrl: null, imageChanged: true })}
+                  >
+                    <X className="h-4 w-4" />
+                    Remover
+                  </Button>
+                )}
+              </div>
+              <input
+                ref={photoRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) void pickPhoto(f)
+                  e.target.value = ''
+                }}
+              />
+            </div>
             <div className="grid gap-1.5">
               <Label htmlFor="p-name">Nome do produto *</Label>
               <Input

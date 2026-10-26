@@ -205,6 +205,11 @@ export default function VendaView({ user }: { user: User }) {
     onSuccess: (r) => {
       if (r.mode === 'online') {
         setReceipt({ ...r.sale, items: r.sale.items ?? [] })
+        // impressão automática (Definições > Impressora): abre o diálogo de impressão
+        if (settingsQuery.data?.settings.autoPrintReceipt) {
+          const done = { ...r.sale, items: r.sale.items ?? [] }
+          setTimeout(() => printReceipt(done, bank), 600)
+        }
       } else {
         setReceipt({
           id: 0,
@@ -452,6 +457,15 @@ export default function VendaView({ user }: { user: User }) {
                       <Badge className="absolute -top-2 -right-2 h-5 min-w-5 rounded-full px-1">
                         {inCart}
                       </Badge>
+                    )}
+                    {p.hasImage && (
+                       
+                      <img
+                        src={`/api/products/${p.id}/image`}
+                        alt={`Foto de ${p.name}`}
+                        loading="lazy"
+                        className="h-14 w-full rounded-md border object-cover"
+                      />
                     )}
                     <span className="text-sm font-medium leading-tight line-clamp-2">{p.name}</span>
                     <span className="mt-auto text-sm font-bold text-primary">

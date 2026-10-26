@@ -6,7 +6,7 @@
  * A versão mais recente é consultada nas Releases do GitHub.
  */
 
-export const APP_VERSION = '1.2.0'
+export const APP_VERSION = '1.3.0'
 
 export const RELEASES_URL =
   'https://api.github.com/repos/filomeno1989/Mac-Banca/releases/latest'

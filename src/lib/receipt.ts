@@ -17,6 +17,7 @@ export interface ReceiptBank {
   address?: string | null
   receiptFooter?: string | null
   currency: string
+  printerWidth?: string | null
 }
 
 /** Dados da banca a partir das Definições */
@@ -28,7 +29,14 @@ export function receiptBank(settings?: Settings | null, currency = 'MT'): Receip
     address: settings?.address ?? null,
     receiptFooter: settings?.receiptFooter ?? null,
     currency: settings?.currency || currency,
+    printerWidth: settings?.printerWidth ?? '80',
   }
+}
+
+/** Largura do papel configurada (58 ou 80 mm) */
+export function paperWidth(bank: ReceiptBank): number {
+  const w = parseInt(String(bank.printerWidth ?? '80'), 10)
+  return w === 58 ? 58 : 80
 }
 
 /** Aceita a venda do servidor e também a venda offline em fila */
@@ -152,11 +160,12 @@ function receiptHtml(sale: ReceiptSale, bank: ReceiptBank): string {
   `
 }
 
-/** Imprimir recibo em papel pequeno (bobina de 80 mm) */
+/** Imprimir recibo em papel pequeno (bobina de 58 ou 80 mm, conforme Definições) */
 export function printReceipt(sale: ReceiptSale, bank: ReceiptBank): void {
+  const W = paperWidth(bank)
   const html = `<!doctype html><html><head><meta charset="utf-8" /><title>Recibo</title>
     <style>
-      @page { size: 80mm auto; margin: 4mm; }
+      @page { size: ${W}mm auto; margin: 4mm; }
       html, body { margin: 0; padding: 0; }
       body { font-family: 'Courier New', ui-monospace, monospace; font-size: 11px; color: #000; }
       h1 { font-size: 15px; margin: 0 0 2px; text-align: center; }
@@ -193,18 +202,18 @@ export function printReceipt(sale: ReceiptSale, bank: ReceiptBank): void {
   setTimeout(() => iframe.remove(), 60_000)
 }
 
-/** PDF do recibo em bobina de 80 mm (para guardar ou enviar) */
+/** PDF do recibo em bobina (largura escolhida nas Definições) */
 export async function downloadReceiptPdf(sale: ReceiptSale, bank: ReceiptBank): Promise<void> {
   const { jsPDF } = await import('jspdf')
   const items = sale.items ?? []
+  const W = paperWidth(bank)
 
   // altura dinâmica: cabeçalho + itens + totais + rodapé
   const metaCount = [bank.nuit, bank.ownerPhone, bank.address].filter(Boolean).length
   const height =
     10 + metaCount * 4 + (metaCount ? 3 : 0) + 10 + items.length * 5 + 26 + (bank.receiptFooter ? 10 : 0) + 6
-  const doc = new jsPDF({ unit: 'mm', format: [80, Math.max(60, height)] })
+  const doc = new jsPDF({ unit: 'mm', format: [W, Math.max(60, height)] })
 
-  const W = 80
   const L = 5
   const R = W - 5
   let y = 9

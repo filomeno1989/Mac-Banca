@@ -62,3 +62,4 @@ server.log
 # projeto Android gerado apenas no CI
 /apk/android/
 apk/scripts/version.txt
+upload/

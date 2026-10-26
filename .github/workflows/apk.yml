@@ -58,6 +58,9 @@ jobs:
       - name: Botão voltar do Android (histórico + saída com dois toques)
         run: node apk/scripts/patch-mainactivity.js
 
+      - name: Atualização in-app (descarrega e instala direto na app)
+        run: node apk/scripts/patch-updater.js
+
       - name: Build APK (release assinado)
         working-directory: apk/android
         run: |

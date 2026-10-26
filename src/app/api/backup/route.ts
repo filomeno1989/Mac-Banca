@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
     stock: asInt(p.stock),
     minStock: asInt(p.minStock, 5),
     active: asBool(p.active),
+    imageUrl: asStrOrNull(p.imageUrl),
     ...(asDate(p.createdAt) ? { createdAt: asDate(p.createdAt) } : {}),
   }))
 
@@ -179,6 +180,8 @@ export async function POST(req: NextRequest) {
     nuit: asStrOrNull(s.nuit),
     address: asStrOrNull(s.address),
     receiptFooter: asStrOrNull(s.receiptFooter),
+    printerWidth: asStr(s.printerWidth, '80') === '58' ? '58' : '80',
+    autoPrintReceipt: asBool(s.autoPrintReceipt, false),
     maintenanceMode: asBool(s.maintenanceMode, false),
     maintenanceMessage: asStrOrNull(s.maintenanceMessage),
   }))

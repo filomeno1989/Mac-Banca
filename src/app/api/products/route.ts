@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getSessionUser, unauthorized, forbidden, badRequest, round2, isPrivileged, maintenanceBlock } from '@/lib/auth'
+import { validateImageDataUrl } from '@/lib/image'
 
 /** Lista de produtos (funcionário não vê preço de custo) */
 export async function GET(req: NextRequest) {
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest) {
       stock: p.stock,
       minStock: p.minStock,
       active: p.active,
+      hasImage: Boolean(p.imageUrl),
     })),
     categories: [...new Set(products.map((p) => p.category))],
   })
@@ -55,6 +57,7 @@ export async function POST(req: NextRequest) {
     salePrice?: number
     stock?: number
     minStock?: number
+    imageUrl?: string | null
   }
 
   const name = String(body.name ?? '').trim()
@@ -62,6 +65,10 @@ export async function POST(req: NextRequest) {
   const costPrice = round2(Number(body.costPrice) || 0)
   const stock = Math.max(0, Math.floor(Number(body.stock) || 0))
   const minStock = Math.max(0, Math.floor(Number(body.minStock) || 0))
+  const image = body.imageUrl === undefined ? undefined : validateImageDataUrl(String(body.imageUrl ?? ''))
+  if (body.imageUrl !== undefined && body.imageUrl !== null && String(body.imageUrl) !== '' && !image) {
+    return badRequest('Foto demasiado grande ou inválida. Tente outra foto.')
+  }
 
   if (!name) return badRequest('O nome do produto é obrigatório.')
   if (!(salePrice > 0)) return badRequest('O preço de venda deve ser maior que zero.')
@@ -76,6 +83,7 @@ export async function POST(req: NextRequest) {
       salePrice,
       stock,
       minStock,
+      ...(image !== undefined ? { imageUrl: image } : {}),
     },
   })
 

@@ -17,6 +17,8 @@ export interface Product {
   stock: number
   minStock: number
   active: boolean
+  hasImage?: boolean
+  imageUrl?: string | null // só usado no formulário (envio dataURL)
 }
 
 export interface SaleItem {
@@ -78,6 +80,8 @@ export interface Settings {
   nuit?: string | null
   address?: string | null
   receiptFooter?: string | null
+  printerWidth?: string | null
+  autoPrintReceipt?: boolean
   maintenanceMode?: boolean
   maintenanceMessage?: string | null
 }

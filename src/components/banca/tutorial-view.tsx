@@ -32,6 +32,16 @@ interface Section {
 /** Novidades da versão atual: atualizar este bloco a cada lançamento */
 const NOVIDADES: { version: string; items: string[] }[] = [
   {
+    version: '1.3.0',
+    items: [
+      'Fotos dos produtos: escolha uma foto ao criar o produto ou edite os produtos existentes para juntar a foto. Aparece nos Produtos e no ecrã de Vender.',
+      'Atualização direta dentro da app: no APK, o botão "Atualizar agora" descarrega e abre o instalador sem sair para o navegador, com barra de progresso.',
+      'Impressora de recibos nas Definições: escolha a largura da bobina (58 mm ou 80 mm) e ligue a impressão automática após cada venda.',
+      'O card "Como funciona o sistema" saiu das Definições: esta página de Ajuda é agora o guia único (sempre atualizado).',
+      'O backup agora inclui as fotos dos produtos.',
+    ],
+  },
+  {
     version: '1.2.0',
     items: [
       'Backup completo nas Definições: descarrega tudo (vendas, produtos, stock, fechos, contas) e restaura quando precisar.',
@@ -105,8 +115,8 @@ export default function TutorialView() {
           items={[
             'No recibo de cada venda (e ao abrir uma venda no histórico) há 4 botões: Partilhar, WhatsApp, Imprimir e Guardar PDF.',
             '"WhatsApp do patrão": se o contacto estiver nas Definições, o recibo segue direto para esse número; senão escolhe o contacto na hora.',
-            '"Imprimir" prepara o recibo em papel pequeno (bobina de 80 mm), igual às máquinas de recibo.',
-            '"Guardar PDF" cria um recibo em PDF de 80 mm para enviar ou arquivar.',
+            '"Imprimir" prepara o recibo no tamanho da bobina escolhido nas Definições > Impressora (58 mm pequena ou 80 mm), igual às máquinas de recibo.',
+            '"Guardar PDF" cria o recibo em PDF para enviar ou arquivar, na mesma largura.',
             'Todos os recibos levam os dados da banca (nome, NUIT, contacto, endereço e mensagem final) que se configuram nas Definições, cartão "Dados da banca".',
           ]}
         />
@@ -120,6 +130,7 @@ export default function TutorialView() {
         <Ul
           items={[
             'Crie produtos em "Produtos" > "Novo produto": nome, categoria, unidade, preço de custo e de venda, stock e mínimo.',
+            'Novidade: pode juntar uma FOTO ao produto (botão "Escolher foto"). Também pode editar um produto existente para lhe pôr a foto: a foto aparece na lista e no ecrã de Vender.',
             'A categoria serve para organizar o PDV e agora também mostra o lucro por categoria nos Relatórios.',
             'Em "Stock" registe entradas (compras ao grossista), perdas e ajustes: tudo fica no histórico.',
             'Quando um produto chega ao mínimo, o painel avisa: altura de comprar mais.',
@@ -179,6 +190,7 @@ export default function TutorialView() {
         <Ul
           items={[
             'Nas Definições pode mudar o nome da banca, moeda, fundo de caixa, contacto/WhatsApp do patrão, NUIT, endereço e a mensagem do rodapé dos recibos.',
+            'No cartão "Impressora de recibos" escolhe a largura da bobina (58/80 mm) e se o recibo sai automaticamente após cada venda.',
             'Estes dados saem em todos os recibos, PDFs e exportações: mantenha-os atualizados.',
           ]}
         />
@@ -205,7 +217,9 @@ export default function TutorialView() {
       body: (
         <Ul
           items={[
-            'Quando houver versão nova, aparece um aviso no topo da app (para todas as contas). Toque em "Descarregar" e instale o APK que desce.',
+            'Quando houver versão nova, aparece um aviso no topo da app (para todas as contas).',
+            'Na aplicação Android toque em "Atualizar agora": a versão descarrega DENTRO da app (com barra de progresso) e o instalador abre sozinho. A primeira vez o aparelho pede permissão para instalar: autorize e toque em "Atualizar agora" de novo.',
+            'No navegador, o botão abre a página de descarregar como antes.',
             'Também pode verificar manualmente em Definições > "Aplicação e atualizações".',
             'Instalar por cima não apaga nada. Mesmo assim, faça um backup antes: nunca se sabe.',
           ]}

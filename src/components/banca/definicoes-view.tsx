@@ -6,7 +6,6 @@ import { toast } from 'sonner'
 import {
   Save,
   Store,
-  Info,
   Wrench,
   RefreshCw,
   Download,
@@ -21,6 +20,7 @@ import {
   Upload,
   BookOpen,
   TriangleAlert,
+  Printer,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,8 +38,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { api } from '@/lib/api-client'
 import { getInstalledVersion, fetchLatestRelease, compareVersions, openExternal } from '@/lib/version'
+import { downloadAndInstallApk, isNativeApp } from '@/lib/updater'
 import type { Settings, User } from '@/lib/types'
 import type { ViewKey } from './banca-app'
 
@@ -103,6 +111,8 @@ export default function DefinicoesView({
       {isIt && <MaintenanceCard settings={settingsQuery.data?.settings} />}
 
       <UpdatesCard />
+
+      <PrinterCard />
 
       <BackupCard />
 
@@ -249,46 +259,21 @@ export default function DefinicoesView({
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Info className="h-4 w-4" />
-                Como funciona o sistema
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-2">
-              <p>
-                <b className="text-foreground">Patrão (você):</b> vê e controla tudo: produtos com
-                preços de custo, lucros, stock, fechos de caixa, relatórios e contas de acesso.
-                Faça o fecho do dia na aba “Fechos” e confirme se o dinheiro da gaveta bate.
-              </p>
-              <p>
-                <b className="text-foreground">Funcionário:</b> entra com o próprio PIN e só vê o
-                que precisa: registo de vendas, produtos (sem preços de custo) e níveis de stock.
-                Não vê lucros nem relatórios.
-              </p>
-              <p>
-                <b className="text-foreground">Vendas:</b> o stock baixa automaticamente a cada
-                venda e o lucro é calculado pela diferença entre preço de venda e custo. Pode
-                anular uma venda (pelo painel do patrão) e o stock volta.
-              </p>
-              <p>
-                <b className="text-foreground">Stock:</b> quando um produto chega ao mínimo, o
-                sistema avisa no painel: altura de comprar ao grossista e registar a entrada.
-              </p>
-            </CardContent>
-          </Card>
         </>
       )}
     </div>
   )
 }
 
-/** Cartão de atualizações: versão instalada e nova versão do APK no GitHub */
+/** Cartão de atualizações: instala a nova versão direto na app (APK nativo) */
 function UpdatesCard() {
   const [installed, setInstalled] = useState<{ version: string; source: 'apk' | 'web' } | null>(null)
   const [latest, setLatest] = useState<{ version: string; url: string } | null>(null)
-  const [state, setState] = useState<'checking' | 'ok' | 'update' | 'error'>('checking')
+  const [state, setState] = useState<
+    'checking' | 'ok' | 'update' | 'error' | 'installing' | 'opened'
+  >('checking')
+  const [progress, setProgress] = useState(0)
+  const native = isNativeApp()
 
   const check = useCallback(async () => {
     try {
@@ -312,6 +297,25 @@ function UpdatesCard() {
     const t = setTimeout(() => void check(), 0)
     return () => clearTimeout(t)
   }, [check])
+
+  const install = async () => {
+    if (!latest) return
+    // navegador (PWA): mantém o fluxo de descarregar no browser
+    if (!native) {
+      openExternal(latest.url)
+      return
+    }
+    setState('installing')
+    setProgress(0)
+    try {
+      await downloadAndInstallApk(latest.url, (p) => setProgress(p.percent))
+      setState('opened')
+      toast.success('Instalador aberto. Siga as instruções do aparelho.')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha na atualização', { duration: 8000 })
+      setState('update')
+    }
+  }
 
   return (
     <Card>
@@ -346,21 +350,46 @@ function UpdatesCard() {
           </p>
         )}
 
-        {state === 'update' && latest && (
+        {(state === 'update' || state === 'installing') && latest && (
           <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-500/40 dark:bg-amber-500/10">
             <p className="flex items-center gap-2 font-medium text-amber-900 dark:text-amber-200">
               <AlertCircle className="h-4 w-4" />
               Nova versão v{latest.version} disponível
             </p>
-            <Button size="sm" onClick={() => openExternal(latest.url)}>
-              <Download className="h-4 w-4" />
-              Descarregar atualização
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              O ficheiro .apk abre no navegador. Depois de descarregar, abra-o no telemóvel para
-              instalar por cima (os dados ficam intactos).
-            </p>
+            {state === 'installing' ? (
+              <div className="space-y-1.5">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-amber-200 dark:bg-amber-900/60">
+                  <div
+                    className="h-full rounded-full bg-amber-500 transition-all"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-amber-900 dark:text-amber-200">
+                  {progress > 0
+                    ? `A descarregar... ${progress}%`
+                    : 'A ligar ao servidor de atualizações...'}
+                </p>
+              </div>
+            ) : (
+              <Button size="sm" onClick={() => void install()}>
+                <Download className="h-4 w-4" />
+                Atualizar agora
+              </Button>
+            )}
+            {!native && state === 'update' && (
+              <p className="text-xs text-muted-foreground">
+                O ficheiro .apk abre no navegador. Depois de descarregar, abra-o no telemóvel para
+                instalar por cima (os dados ficam intactos).
+              </p>
+            )}
           </div>
+        )}
+
+        {state === 'opened' && (
+          <p className="flex items-center gap-2 text-primary">
+            <CheckCircle2 className="h-4 w-4" />
+            Instalador aberto: siga as instruções do aparelho e abra a app de novo ao terminar.
+          </p>
         )}
 
         {state === 'error' && (
@@ -377,10 +406,91 @@ function UpdatesCard() {
             setState('checking')
             void check()
           }}
-          disabled={state === 'checking'}
+          disabled={state === 'checking' || state === 'installing'}
         >
           <RefreshCw className="h-3.5 w-3.5" />
           Verificar novamente
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Cartão da impressora: largura do papel e impressão automática dos recibos */
+function PrinterCard() {
+  const qc = useQueryClient()
+  const settingsQuery = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api<{ settings: Settings }>('/api/settings'),
+    staleTime: Infinity,
+  })
+
+  const current = settingsQuery.data?.settings
+  const [width, setWidth] = useState<string | null>(null)
+  const [auto, setAuto] = useState<boolean | null>(null)
+  const w = width ?? current?.printerWidth ?? '80'
+  const autoPrint = auto ?? current?.autoPrintReceipt ?? false
+
+  const save = useMutation({
+    mutationFn: () =>
+      api<{ settings: Settings }>('/api/settings', {
+        method: 'PATCH',
+        json: { printerWidth: w, autoPrintReceipt: autoPrint },
+      }),
+    onSuccess: (r) => {
+      toast.success('Impressora guardada!')
+      setWidth(null)
+      setAuto(null)
+      qc.setQueryData(['settings'], r)
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Erro ao guardar'),
+  })
+
+  const dirty = width !== null || auto !== null
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Printer className="h-4 w-4" />
+          Impressora de recibos
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-1.5">
+            <Label>Largura do papel</Label>
+            <Select value={w} onValueChange={setWidth}>
+              <SelectTrigger aria-label="Largura do papel">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="58">Bobina 58 mm (pequena)</SelectItem>
+                <SelectItem value="80">Bobina 80 mm (grande)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <label className="flex items-center justify-between gap-3 rounded-lg border p-3">
+          <span>
+            <span className="block text-sm font-medium">Imprimir recibo após cada venda</span>
+            <span className="block text-xs text-muted-foreground">
+              Abre a impressão sozinho quando a venda é finalizada.
+            </span>
+          </span>
+          <Switch checked={autoPrint} onCheckedChange={setAuto} aria-label="Imprimir após cada venda" />
+        </label>
+        <p className="text-xs text-muted-foreground">
+          A impressão usa o sistema do aparelho (qualquer impressora configurada). Impessoras
+          térmicas Bluetooth ligadas direto na app chegam numa próxima versão.
+        </p>
+        <Button
+          className="w-fit"
+          onClick={() => save.mutate()}
+          disabled={!dirty || save.isPending}
+        >
+          <Save className="h-4 w-4" />
+          Guardar impressora
         </Button>
       </CardContent>
     </Card>
@@ -467,8 +577,9 @@ function BackupCard() {
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <p className="text-muted-foreground">
-          Guarda tudo num ficheiro: produtos, vendas, stock, fechos, contas e definições. Faça um
-          backup regularmente (por exemplo, uma vez por semana) e antes de atualizar o sistema.
+          Guarda tudo num ficheiro: produtos (com fotos), vendas, stock, fechos, contas e
+definições. Faça um backup regularmente (por exemplo, uma vez por semana) e antes de atualizar o
+sistema.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => void download()}>

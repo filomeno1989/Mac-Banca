@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getSessionUser, unauthorized, forbidden, badRequest, round2, isPrivileged, maintenanceBlock } from '@/lib/auth'
+import { validateImageDataUrl } from '@/lib/image'
 
 /** Editar produto (patrão) */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -24,6 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     salePrice?: number
     minStock?: number
     active?: boolean
+    imageUrl?: string | null
   }
 
   const data: Record<string, unknown> = {}
@@ -42,6 +44,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (body.minStock !== undefined) data.minStock = Math.max(0, Math.floor(Number(body.minStock) || 0))
   if (body.active !== undefined) data.active = Boolean(body.active)
+  if (body.imageUrl !== undefined) {
+    const image = validateImageDataUrl(String(body.imageUrl ?? ''))
+    if (body.imageUrl !== null && String(body.imageUrl) !== '' && !image) {
+      return badRequest('Foto demasiado grande ou inválida. Tente outra foto.')
+    }
+    data.imageUrl = image // null limpa a foto
+  }
 
   const updated = await db.product.update({ where: { id: productId }, data })
   return NextResponse.json({ product: updated })
